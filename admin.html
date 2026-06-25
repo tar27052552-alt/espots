@@ -245,6 +245,18 @@ let unsub = null;
 function init() {
   initFirebase();
   loadTeamsFromStorage();
+  
+  // Real-time listen to custom team/player names from Firebase
+  DB.listen('config/teams', (dbTeams) => {
+    if (dbTeams && Object.keys(dbTeams).length > 0) {
+      state.teamsData = dbTeams;
+      state.teams = getTeamsForGroup(state.group);
+      renderKillGrid();
+      renderHotkeyGrid();
+      updateKillDisplay();
+    }
+  });
+
   selectGroup('A');
 }
 
