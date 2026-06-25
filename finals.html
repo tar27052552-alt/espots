@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รอบชิงชนะเลิศ — FF Esports Score</title>
+  <link rel="stylesheet" href="style.css?v=10.1">
+  <style>
+    .finals-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Champion Banner */
+    .champion-banner {
+      background: linear-gradient(135deg, rgba(255, 230, 0, 0.15) 0%, rgba(10, 12, 18, 0.95) 100%) !important;
+      border: 3px solid var(--yellow) !important;
+      border-radius: var(--radius-xl) !important;
+      padding: 40px 32px !important; 
+      text-align: center; 
+      margin-bottom: 32px;
+      box-shadow: 0 0 50px rgba(255, 230, 0, 0.25), 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+      display: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .champion-banner.visible { display: block; }
+    .champion-banner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 230, 0, 0.05) 2px, transparent 2px);
+      background-size: 20px 20px;
+      pointer-events: none;
+    }
+    .champ-crown { font-size: 72px; animation: float 3s ease-in-out infinite; display: block; }
+    .champ-title { font-size: 14px; font-weight: 800; font-family: 'Orbitron', sans-serif; text-transform: uppercase; letter-spacing: 0.25em; color: var(--yellow); margin: 12px 0; }
+    .champ-name { font-size: 48px; font-weight: 900; color: #ffffff; text-shadow: 0 0 30px rgba(255, 230, 0, 0.6); font-family: 'Kanit', sans-serif; }
+    .champ-score { font-size: 18px; color: var(--text-secondary); margin-top: 8px; }
+
+    /* Layout */
+    .finals-layout { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
+
+    /* Finals Leaderboard */
+    .finals-lb { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .finals-lb-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    
+    .f-group-tag {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 6px;
+      font-size: 11px; font-weight: 900; margin-right: 8px;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .f-score-breakdown { font-size: 11px; color: #555555; margin-top: 2px; display: flex; gap: 8px; }
+    .f-qual { font-size: 11px; color: #555555; text-align: right; }
+
+    /* Admin sidebar */
+    .admin-sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Match selector for finals */
+    .finals-match-btn {
+      width: 100%; padding: 12px; background: var(--bg-secondary);
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      font-family: 'Orbitron', 'Kanit', sans-serif; font-size: 13px; font-weight: 800;
+      cursor: pointer; color: var(--text-secondary); transition: all 0.2s; text-align: center;
+      text-transform: uppercase;
+    }
+    .finals-match-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+    .finals-match-btn.active { 
+      background: #ffffff !important; 
+      border-color: var(--yellow) !important; 
+      color: #000000 !important; 
+      box-shadow: 0 4px 15px rgba(255,230,0,0.2) !important; 
+    }
+    .finals-match-btn.completed { border-color: rgba(0,255,136,0.3); color: var(--green); }
+
+    /* Kill cards for finals */
+    .f-kill-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .f-kc { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; }
+    .f-kc.has-kills { border-color: rgba(255, 230, 0, 0.3); }
+    .f-kc-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .f-kc-name { font-size: 11px; font-weight: 800; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .f-kc-count { font-size: 20px; font-weight: 900; color: var(--yellow); text-align: center; font-variant-numeric: tabular-nums; }
+    .f-kc-btn { flex: 1; font-size: 11px; padding: 5px 2px; border-radius: 4px; border: 1px solid; cursor: pointer; font-family: 'Orbitron', 'Kanit', sans-serif; font-weight: 700; transition: all 0.15s; }
+    .f-kc-plus { background: rgba(255,230,0,0.12); border-color: rgba(255,230,0,0.3); color: var(--yellow); }
+    .f-kc-plus:hover { background: rgba(255,230,0,0.25); }
+    .f-kc-minus { background: rgba(255,45,120,0.1); border-color: rgba(255,45,120,0.2); color: var(--pink); }
+    .f-kc-minus:hover { background: rgba(255,45,120,0.2); }
+
+    /* Placement for finals */
+    .f-plc { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 8px; }
+    .f-plc label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+    .f-plc-1 label { color: var(--gold); }
+    .f-plc-2 label { color: var(--silver); }
+    .f-plc-3 label { color: var(--bronze); }
+
+    @media (max-width: 900px) {
+      .finals-layout { grid-template-columns: 1fr; }
+      .f-kill-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body class="finals-page">
+<div class="page-wrapper">
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo">🎮</div>
+      <div>
+        <div class="navbar-title">FF Esports Score</div>
+        <div class="navbar-subtitle">รอบชิงชนะเลิศ</div>
+      </div>
+    </a>
+    <div class="navbar-nav">
+      <a href="leaderboard.html" class="nav-link" target="_blank">📊 Leaderboard คัดเลือก</a>
+      <a href="admin.html" class="nav-link">🎮 Admin คัดเลือก</a>
+    </div>
+  </nav>
+
+  <div class="finals-container">
+
+    <!-- Champion Banner (shows when finals complete) -->
+    <div id="champion-banner" class="champion-banner animate-in">
+      <span class="champ-crown">👑</span>
+      <div class="champ-title">🏆 แชมป์การแข่งขัน 🏆</div>
+      <div class="champ-name" id="champ-name">—</div>
+      <div class="champ-score" id="champ-score"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="lb-top-header flex-between mb-24 animate-in" style="flex-wrap:wrap;gap:12px;width:100%">
+      <div class="lb-title-block" style="display:flex;align-items:center;gap:16px">
+        <img src="./school_logos.png" class="header-logo-school" alt="School Logos">
+        <div style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:10px">
+            <img src="./free_fire_logo.png" class="header-logo-game" alt="Free Fire Logo">
+            <h1 style="font-size:32px;font-weight:900;font-family:'Orbitron','Kanit',sans-serif;margin:0;line-height:1"><span class="gradient-text">RANK</span></h1>
+          </div>
+          <p style="margin:4px 0 0 0;font-size:12px;color:var(--text-secondary)">รอบชิงชนะเลิศ — 12 ทีมผู้ผ่านการคัดเลือก · 3 แมตช์ · คะแนนสะสมรวม</p>
+        </div>
+      </div>
+      <div class="flex gap-8" style="align-items:center">
+        <button class="btn btn-secondary btn-sm" onclick="togglePresentationMode()" style="font-family:'Orbitron','Kanit',sans-serif;font-weight:800;gap:6px">
+          🖥️ เต็มจอ
+        </button>
+        <div class="live-indicator" id="finals-live-badge" style="display:none">LIVE</div>
+        <span id="finals-match-status-badge" class="badge badge-purple"><span class="status-dot"></span> รอเริ่ม</span>
+      </div>
+    </div>
+
+    <div class="finals-layout">
+
+      <!-- ===== LEADERBOARD ===== -->
+      <div class="finals-lb animate-in animate-in-delay-1">
+        <div class="tabs mb-16" style="margin: 14px 20px 0 20px">
+          <button class="tab-btn active" id="f-tab-teams" onclick="switchFinalsView('TEAMS')">🏆 อันดับทีมรอบชิง</button>
+          <button class="tab-btn" id="f-tab-mvp" onclick="switchFinalsView('MVP')">🎖️ อันดับ MVP รอบชิง</button>
+        </div>
+        <div class="finals-lb-header">
+          <div>
+            <h2 style="font-size:18px;font-weight:800">🏆 ตารางคะแนนรอบชิง</h2>
+            <p class="text-muted" style="font-size:13px">คะแนนรวม = รอบคัดเลือก + รอบชิงชนะเลิศ</p>
+          </div>
+          <div class="live-indicator" id="lb-live">LIVE</div>
+        </div>
+        <table class="finals-table">
+          <thead><tr>
+            <th>#</th><th>ทีม</th><th>คัดเลือก</th><th>รอบชิง</th><th>รวมทั้งหมด</th>
+          </tr></thead>
+          <tbody id="finals-lb-body">
+            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== ADMIN SIDEBAR ===== -->
+      <div class="admin-sidebar animate-in animate-in-delay-2">
+
+        <!-- Match Selector -->
+        <div class="card">
+          <div class="section-title">⚔️ รอบชิง — เลือกแมตช์</div>
+          <div class="flex gap-6" style="flex-direction:column" id="finals-match-selector">
+            <button class="finals-match-btn active" id="fmbtn-1" onclick="selectFinalsMatch(1)">⚔️ แมตช์ 1</button>
+            <button class="finals-match-btn" id="fmbtn-2" onclick="selectFinalsMatch(2)">⚔️ แมตช์ 2</button>
+            <button class="finals-match-btn" id="fmbtn-3" onclick="selectFinalsMatch(3)">⚔️ แมตช์ 3 (Final)</button>
+          </div>
+          <div class="flex gap-8 mt-12">
+            <button class="btn btn-success w-full" id="f-btn-start" onclick="startFinalsMatch()">▶ เริ่มแมตช์</button>
+            <button class="btn btn-danger w-full hidden" id="f-btn-end" onclick="endFinalsMatch()">⏹ จบแมตช์</button>
+          </div>
+        </div>
+
+        <!-- Hotkeys hint -->
+        <div class="card">
+          <div class="section-title">⌨️ Hotkey (1–9,0,-,=)</div>
+          <p class="text-muted" style="font-size:12px">กดตัวเลขบนคีย์บอร์ดเพื่อ +Kill ให้ทีม<br>ตามลำดับในรายการด้านซ้าย</p>
+          <div id="f-hk-status" class="mt-8 badge badge-purple">ปิดอยู่</div>
+        </div>
+
+        <!-- Kill Grid -->
+        <div class="card">
+          <div class="flex-between mb-10">
+            <div class="section-title" style="margin-bottom:0">💀 Kill Counter</div>
+            <button class="btn btn-sm btn-ghost" onclick="resetFinalsKills()">🔄</button>
+          </div>
+          <div class="f-kill-grid" id="finals-kill-grid"></div>
+        </div>
+
+        <!-- Placement -->
+        <div class="card">
+          <div class="section-title">🏅 อันดับแมตช์นี้</div>
+          <div class="f-plc f-plc-1">
+            <label>🥇 อันดับ 1 (+5คะแนน)</label>
+            <select class="form-input" id="f-plc-first" style="font-size:12px;padding:6px 8px"><option value="">— เลือก —</option></select>
+          </div>
+          <div class="f-plc f-plc-2">
+            <label>🥈 อันดับ 2 (+3คะแนน)</label>
+            <select class="form-input" id="f-plc-second" style="font-size:12px;padding:6px 8px"><option value="">— เลือก —</option></select>
+          </div>
+          <div class="f-plc f-plc-3">
+            <label>🥉 อันดับ 3 (+1คะแนน)</label>
+            <select class="form-input" id="f-plc-third" style="font-size:12px;padding:6px 8px"><option value="">— เลือก —</option></select>
+          </div>
+          <button class="btn btn-primary w-full mt-8" onclick="saveFinalsPlacement()">💾 บันทึกอันดับ</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="firebase-config.js?v=10.1"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="app.js?v=10.1"></script>
+<script>
+// ===== State =====
+let fState = {
+  match: 1,
+  finalists: [],  // [{ key, name, group, teamIndex, qualScore }]
+  kills: {},
+  status: 'pending',
+  placements: { first: null, second: null, third: null },
+  currentView: 'TEAMS',
+  lastData: null
+};
+let fUnsub = null;
+let fHotkey = new HotkeyManager();
+
+// ===== Init =====
+function init() {
+  initFirebase();
+
+  if (!db) {
+    document.getElementById('finals-lb-body').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่ได้ตั้งค่า Firebase — <a href="admin-setup.html" style="color:var(--cyan)">ตั้งค่า</a></td></tr>`;
+    return;
+  }
+
+  // Listen to all data
+  DB.listen('/', (data) => {
+    const d = data || {};
+    fState.dbSnapshot = d;
+    fState.finalists = Object.values(d.finalists || {}).sort((a, b) => b.qualScore - a.qualScore);
+    renderFinalsLB(d);
+    renderFinalsKillGrid();
+    renderFinalsPlacementSelects();
+    checkChampion(d);
+  });
+
+  // Listen to current match
+  listenFinalsMatch(1);
+}
+
+function listenFinalsMatch(m) {
+  if (fUnsub) fUnsub();
+  fUnsub = DB.listen(`finals/match${m}`, (data) => {
+    if (!data) data = {};
+    fState.kills = data.kills || {};
+    fState.status = data.status || 'pending';
+    fState.placements = data.placements || {};
+    updateFinalsMatchUI();
+    updateFinalsKillDisplay();
+  });
+}
+
+// ===== Match Control =====
+function selectFinalsMatch(m) {
+  fState.match = m;
+  document.querySelectorAll('[id^="fmbtn-"]').forEach((b, i) => {
+    b.classList.toggle('active', (i+1) === m);
+  });
+  listenFinalsMatch(m);
+}
+
+async function startFinalsMatch() {
+  await DB.set(`finals/match${fState.match}/status`, 'active');
+  fHotkey.setTeams(fState.finalists.map((f, i) => ({ index: i, name: f.name })));
+  // บันทึกเข้าผู้เล่นคนแรก (index 0) ของทีมนั้นๆ เมื่อกด Hotkey
+  fHotkey.enable((idx) => recordFinalsKill(idx, 0));
+  document.getElementById('f-hk-status').textContent = 'ทำงาน';
+  document.getElementById('f-hk-status').className = 'badge badge-green mt-8';
+  showToast(`เริ่มรอบชิง แมตช์ ${fState.match} แล้ว!`, 'success');
+}
+
+async function endFinalsMatch() {
+  if (!confirm('ยืนยันจบแมตช์นี้?')) return;
+  await DB.set(`finals/match${fState.match}/status`, 'completed');
+  fHotkey.disable();
+  document.getElementById('f-hk-status').textContent = 'ปิดอยู่';
+  document.getElementById('f-hk-status').className = 'badge badge-purple mt-8';
+  document.getElementById(`fmbtn-${fState.match}`).classList.add('completed');
+  showToast('จบแมตช์แล้ว! กำหนดอันดับ', 'info', 4000);
+}
+
+function updateFinalsMatchUI() {
+  const s = fState.status;
+  const badge = document.getElementById('finals-match-status-badge');
+  const liveBadge = document.getElementById('finals-live-badge');
+  const startBtn = document.getElementById('f-btn-start');
+  const endBtn = document.getElementById('f-btn-end');
+
+  if (s === 'active') {
+    badge.className = 'badge badge-green status-active';
+    badge.innerHTML = '<span class="status-dot"></span> กำลังแข่ง';
+    liveBadge.style.display = 'flex';
+    startBtn.classList.add('hidden');
+    endBtn.classList.remove('hidden');
+  } else if (s === 'completed') {
+    badge.className = 'badge badge-cyan status-completed';
+    badge.innerHTML = '<span class="status-dot"></span> จบแล้ว';
+    liveBadge.style.display = 'none';
+    startBtn.classList.add('hidden');
+    endBtn.classList.add('hidden');
+  } else {
+    badge.className = 'badge badge-purple status-pending';
+    badge.innerHTML = '<span class="status-dot"></span> รอเริ่ม';
+    liveBadge.style.display = 'none';
+    startBtn.classList.remove('hidden');
+    endBtn.classList.add('hidden');
+  }
+}
+
+function getFinalistPlayers(f) {
+  const group = f.group;
+  const tIdx = f.teamIndex;
+  const teamInfo = fState.dbSnapshot?.config?.teams?.[group]?.[tIdx] || {};
+  return teamInfo.players || f.players || getDefaultTeamPlayers(group, tIdx);
+}
+
+async function recordFinalsKill(finalistIndex, playerIndex = 0) {
+  if (fState.status !== 'active') {
+    showToast('ต้องเริ่มแมตช์ก่อน', 'error'); return;
+  }
+  const finalist = fState.finalists[finalistIndex];
+  if (!finalist) return;
+  const path = `finals/match${fState.match}/kills/${finalist.key}/${playerIndex}`;
+  const newCount = await DB.increment(path);
+  const players = getFinalistPlayers(finalist);
+  const playerName = players[playerIndex] || `ผู้เล่น ${playerIndex + 1}`;
+  showToast(`💀 ${playerName} (+1 Kill) ของทีม ${finalist.name}`, 'kill', 2000);
+}
+
+async function resetFinalsKills() {
+  if (!confirm('รีเซ็ต Kill แมตช์นี้?')) return;
+  await DB.set(`finals/match${fState.match}/kills`, null);
+}
+
+// ===== Placement =====
+function renderFinalsPlacementSelects() {
+  const opts = fState.finalists.map(f =>
+    `<option value="${f.key}">${f.name} (สาย${f.group})</option>`
+  ).join('');
+  ['first','second','third'].forEach(k => {
+    const el = document.getElementById(`f-plc-${k}`);
+    if (el) el.innerHTML = `<option value="">— เลือกทีม —</option>${opts}`;
+  });
+  if (fState.placements?.first) document.getElementById('f-plc-first').value = fState.placements.first;
+  if (fState.placements?.second) document.getElementById('f-plc-second').value = fState.placements.second;
+  if (fState.placements?.third) document.getElementById('f-plc-third').value = fState.placements.third;
+}
+
+async function saveFinalsPlacement() {
+  const first = document.getElementById('f-plc-first').value;
+  const second = document.getElementById('f-plc-second').value;
+  const third = document.getElementById('f-plc-third').value;
+  const pl = {};
+  if (first) pl.first = first;
+  if (second) pl.second = second;
+  if (third) pl.third = third;
+  await DB.update(`finals/match${fState.match}`, { placements: pl });
+  showToast('บันทึกอันดับสำเร็จ ✅', 'success');
+}
+
+// ===== Kill Grid =====
+function renderFinalsKillGrid() {
+  const grid = document.getElementById('finals-kill-grid');
+  if (fState.finalists.length === 0) {
+    grid.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:20px;color:var(--text-muted);font-size:12px">รอผลักดันทีมเข้ารอบชิง...</div>';
+    return;
+  }
+  grid.innerHTML = fState.finalists.map((f, i) => {
+    const players = getFinalistPlayers(f);
+    const playersHtml = players.map((p, pIdx) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;background:rgba(255,255,255,0.02);padding:2px 6px;border-radius:4px">
+        <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;color:var(--text-primary)" title="${p}">${p}</span>
+        <div style="display:flex;align-items:center;gap:3px">
+          <span style="font-weight:900;color:var(--orange);font-size:12px;margin-right:4px" id="fkc-count-${i}-${pIdx}">0</span>
+          <button class="f-kc-btn f-kc-minus" style="padding:1px 4px;font-size:9px" onclick="removeFinalsKill(${i}, ${pIdx})">−</button>
+          <button class="f-kc-btn f-kc-plus" style="padding:1px 4px;font-size:9px" onclick="recordFinalsKill(${i}, ${pIdx})">+K</button>
+        </div>
+      </div>
+    `).join('');
+
+    return `
+    <div class="f-kc" id="fkc-${i}" style="display:flex;flex-direction:column;justify-content:space-between;padding:8px">
+      <div>
+        <div class="f-kc-top" style="border-bottom:1px solid rgba(0,245,255,0.08);padding-bottom:4px;margin-bottom:4px">
+          <span style="font-size:9px;padding:1px 4px;border-radius:3px;background:${getGroupColor(f.group)}20;color:${getGroupColor(f.group)};font-weight:900">${f.group}</span>
+          <span class="f-kc-name" title="${f.name}" style="font-weight:800;color:var(--cyan)">${f.name}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-secondary);display:flex;justify-content:space-between;align-items:center">
+          <span>Kill รวมแมตช์:</span>
+          <span class="f-kc-count" id="fkc-count-${i}" style="font-size:14px;margin:0;color:var(--orange);font-weight:900">0</span>
+        </div>
+      </div>
+      <div style="margin-top:6px">${playersHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+async function removeFinalsKill(finalistIndex, playerIndex = 0) {
+  const finalist = fState.finalists[finalistIndex];
+  if (!finalist) return;
+  const teamKills = fState.kills[finalist.key] || {};
+  const cur = teamKills[playerIndex] || 0;
+  if (cur <= 0) return;
+  const path = `finals/match${fState.match}/kills/${finalist.key}/${playerIndex}`;
+  await DB.set(path, cur - 1);
+}
+
+function updateFinalsKillDisplay() {
+  fState.finalists.forEach((f, i) => {
+    let totalKills = 0;
+    const teamKillsObj = fState.kills[f.key] || {};
+    const players = getFinalistPlayers(f);
+
+    players.forEach((_, pIdx) => {
+      const count = typeof teamKillsObj === 'object' ? (teamKillsObj[pIdx] || 0) : 0;
+      totalKills += count;
+      const pEl = document.getElementById(`fkc-count-${i}-${pIdx}`);
+      if (pEl) pEl.textContent = count;
+    });
+
+    if (typeof teamKillsObj !== 'object') {
+      totalKills = teamKillsObj || 0;
+    }
+
+    const el = document.getElementById(`fkc-count-${i}`);
+    const card = document.getElementById(`fkc-${i}`);
+    if (el) {
+      const prev = parseInt(el.textContent) || 0;
+      el.textContent = totalKills;
+      if (totalKills > prev) {
+        el.style.animation = 'none';
+        requestAnimationFrame(() => { el.style.animation = 'killFlash 0.4s ease-out'; });
+      }
+    }
+    if (card) card.classList.toggle('has-kills', totalKills > 0);
+  });
+}
+
+// ===== View Switcher for Finals =====
+function switchFinalsView(view) {
+  fState.currentView = view;
+  document.getElementById('f-tab-teams').classList.toggle('active', view === 'TEAMS');
+  document.getElementById('f-tab-mvp').classList.toggle('active', view === 'MVP');
+  if (fState.lastData) {
+    renderFinalsLB(fState.lastData);
+  }
+}
+
+// ===== Finals Leaderboard =====
+function renderFinalsLB(data) {
+  fState.lastData = data;
+  const finalists = Object.values(data?.finalists || {});
+  
+  if (finalists.length === 0) {
+    document.getElementById('finals-lb-body').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;padding:60px;color:var(--text-muted)">
+        <div style="font-size:40px;margin-bottom:12px">⏳</div>
+        <div>รอทีมผ่านรอบคัดเลือก...<br>
+        <span style="font-size:12px">ทีม Top 2 ของแต่ละสายจะปรากฏที่นี่โดยอัตโนมัติ</span></div>
+      </td></tr>`;
+    return;
+  }
+
+  // Update header depending on the view
+  const headerTitle = document.querySelector('.finals-lb-header h2');
+  const headerSub = document.querySelector('.finals-lb-header p');
+  
+  if (fState.currentView === 'MVP') {
+    if (headerTitle) headerTitle.textContent = '🎖️ อันดับ MVP รอบชิง';
+    if (headerSub) headerSub.textContent = 'จัดอันดับผู้เล่นที่ทำ Kill สูงสุดในรอบชิงชนะเลิศ (คลิกแถบด้านบนเพื่อสลับกลับ)';
+    
+    const tableHeader = document.querySelector('.finals-table thead');
+    tableHeader.innerHTML = `<tr>
+      <th style="width:70px">อันดับ</th><th>ผู้เล่น</th><th>สังกัดทีม</th><th style="text-align:right">Kills รอบชิง</th>
+    </tr>`;
+    
+    const mvpList = getFinalsMVPLeaderboard(data);
+    const top1 = mvpList[0];
+    const top2 = mvpList[1];
+    const top3 = mvpList[2];
+
+    let podiumHtml = '';
+    if (mvpList.length > 0) {
+      podiumHtml = `
+      <div class="mvp-podium-container" style="display:flex;justify-content:center;align-items:flex-end;gap:12px;margin:20px auto 30px;max-width:100%;padding:16px 10px;background:rgba(255,230,0,0.03);border-radius:16px;border:1px solid rgba(255,230,0,0.1);box-shadow:inset 0 0 15px rgba(255,230,0,0.02)">
+        <!-- 2nd Place -->
+        ${top2 ? `
+        <div style="display:flex;flex-direction:column;align-items:center;width:30%;">
+          <div style="font-size:28px;margin-bottom:4px;animation:float 3s ease-in-out infinite">🥈</div>
+          <div style="font-size:12px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top2.name)}</div>
+          <div style="font-size:10px;color:#888888;margin-bottom:6px">${escHtml(top2.teamName)} (${top2.group})</div>
+          <div class="podium-bar" style="width:100%;height:60px;background:linear-gradient(180deg, #b0bec5, rgba(176,190,197,0.1));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:1.5px solid #b0bec5;border-bottom:none">
+            <span style="font-size:20px;font-family:'Orbitron',sans-serif">${top2.kills}</span>
+            <span style="font-size:8px">KILLS</span>
+          </div>
+        </div>` : ''}
+
+        <!-- 1st Place -->
+        ${top1 ? `
+        <div style="display:flex;flex-direction:column;align-items:center;width:35%;margin-top:-15px">
+          <div style="font-size:38px;margin-bottom:4px;animation:float 2.5s ease-in-out infinite">👑</div>
+          <div style="font-size:14px;font-weight:900;color:#ffe600;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top1.name)}</div>
+          <div style="font-size:11px;color:#ffffff;margin-bottom:6px">${escHtml(top1.teamName)} (${top1.group})</div>
+          <div class="podium-bar" style="width:100%;height:95px;background:linear-gradient(180deg, #ffe600, rgba(255,230,0,0.15));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:2px solid #ffe600;border-bottom:none;box-shadow: 0 0 15px rgba(255,230,0,0.25)">
+            <span style="font-size:26px;font-family:'Orbitron',sans-serif">${top1.kills}</span>
+            <span style="font-size:9px">KILLS</span>
+          </div>
+        </div>` : ''}
+
+        <!-- 3rd Place -->
+        ${top3 ? `
+        <div style="display:flex;flex-direction:column;align-items:center;width:30%;">
+          <div style="font-size:28px;margin-bottom:4px;animation:float 3.5s ease-in-out infinite">🥉</div>
+          <div style="font-size:12px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top3.name)}</div>
+          <div style="font-size:10px;color:#888888;margin-bottom:6px">${escHtml(top3.teamName)} (${top3.group})</div>
+          <div class="podium-bar" style="width:100%;height:45px;background:linear-gradient(180deg, #d7ccc8, rgba(215,204,200,0.1));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:1.5px solid #d7ccc8;border-bottom:none">
+            <span style="font-size:18px;font-family:'Orbitron',sans-serif">${top3.kills}</span>
+            <span style="font-size:8px">KILLS</span>
+          </div>
+        </div>` : ''}
+      </div>`;
+    }
+
+    const remainingPlayers = mvpList.slice(3);
+    const rows = remainingPlayers.map((p, index) => {
+      const rank = index + 4;
+      const color = getGroupColor(p.group);
+      return `<tr>
+        <td><span class="f-rank">${rank}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:9px;padding:2px 5px;border-radius:4px;background:${color}20;color:${color};font-weight:900">${p.group}</span>
+            <span class="lb-team-name">${escHtml(p.name)}</span>
+          </div>
+        </td>
+        <td><span style="color:#000000;font-weight:700;font-size:12px">${escHtml(p.teamName)}</span></td>
+        <td style="text-align:right"><span class="f-grand" style="font-size:18px;color:#e65100">💀 ${p.kills}</span></td>
+      </tr>`;
+    }).join('');
+    
+    document.getElementById('finals-lb-body').innerHTML = `
+      <tr><td colspan="4" style="background:transparent !important;padding:0 !important;border:none !important">${podiumHtml}</td></tr>
+      ${rows || '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}`;
+  } else {
+    if (headerTitle) headerTitle.textContent = '🏆 ตารางคะแนนรอบชิง';
+    if (headerSub) headerSub.textContent = 'คะแนนรวม = รอบคัดเลือก + รอบชิงชนะเลิศ (คลิกดูชื่อรายคน)';
+    
+    const tableHeader = document.querySelector('.finals-table thead');
+    tableHeader.innerHTML = `<tr>
+      <th>#</th><th>ทีม (คลิกดูรายคน)</th><th>คัดเลือก</th><th>รอบชิง</th><th>รวมทั้งหมด</th>
+    </tr>`;
+
+    // Calculate total scores
+    const scored = finalists.map(f => {
+      let finalsKills = 0, finalsPlacement = 0;
+      for (let m = 1; m <= 3; m++) {
+        const match = data?.finals?.[`match${m}`];
+        if (!match) continue;
+        if (match.placements?.first === f.key) finalsPlacement += 5;
+        else if (match.placements?.second === f.key) finalsPlacement += 3;
+        else if (match.placements?.third === f.key) finalsPlacement += 1;
+        
+        const teamKillsObj = match.kills?.[f.key];
+        if (teamKillsObj) {
+          if (typeof teamKillsObj === 'object') {
+            Object.values(teamKillsObj).forEach(k => { finalsKills += (k || 0); });
+          } else {
+            finalsKills += (teamKillsObj || 0);
+          }
+        }
+      }
+      return {
+        ...f,
+        finalsScore: finalsPlacement + finalsKills,
+        finalsKills, finalsPlacement,
+        grandTotal: (f.qualScore || 0) + finalsPlacement + finalsKills
+      };
+    }).sort((a, b) => b.grandTotal - a.grandTotal || b.finalsKills - a.finalsKills);
+
+    const rows = scored.map((f, rank) => {
+      const color = getGroupColor(f.group);
+      const rankClass = rank === 0 ? 'f-rank-1' : rank === 1 ? 'f-rank-2' : rank === 2 ? 'f-rank-3' : '';
+      const isChamp = rank === 0;
+      
+      // โหลดรายชื่อผู้เล่นเพื่อทำแถบย่อย
+      const players = getFinalistPlayers(f);
+      const playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;padding:8px">` + players.map((p, pIdx) => {
+        let pKills = 0;
+        for (let m = 1; m <= 3; m++) {
+          pKills += (data?.finals?.[`match${m}`]?.kills?.[f.key]?.[pIdx] || 0);
+        }
+        return `
+          <div class="player-capsule-detail" style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;border:2px solid #ffe600;border-radius:100px;padding:6px 14px;color:#000000;box-shadow:0 3px 6px rgba(0,0,0,0.15)">
+            <span style="font-weight:700;font-size:12px">${escHtml(p)}</span>
+            <span style="background:#ffe600;color:#000000;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:800;font-family:'Orbitron',sans-serif">💀 ${pKills}</span>
+          </div>`;
+      }).join('') + `</div>`;
+
+      return `<tr class="${isChamp ? 'champion-row' : ''}" style="cursor:pointer" onclick="toggleRowDetails('${f.key}')">
+        <td><span class="f-rank ${rankClass}">${rank+1}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="f-group-tag" style="background:${color}20;color:${color}">${f.group}</span>
+            <div>
+              <div class="f-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(f.name)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></div>
+              <div class="f-score-breakdown">
+                <span>คัดเลือก: ${f.qualScore || 0}</span>
+                <span>·</span>
+                <span>ชิง: ${f.finalsPlacement}pl + ${f.finalsKills}kill</span>
+              </div>
+            </div>
+          </div>
+        </td>
+        <td><span style="color:#000000;font-weight:700">${f.qualScore || 0}</span></td>
+        <td><span style="color:#e65100;font-weight:700">${f.finalsScore}</span></td>
+        <td>
+          <div class="f-grand">${f.grandTotal}</div>
+        </td>
+      </tr>
+      <tr id="details-${f.key}" style="display:none;">
+        <td colspan="5" style="padding:8px 12px 14px 12px !important">
+          <div style="border-left:3px solid ${color};padding-left:12px">${playersHtml}</div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('finals-lb-body').innerHTML = rows;
+    fState.finalists = scored;
+  }
+}
+
+function toggleRowDetails(id) {
+  const el = document.getElementById(`details-${id}`);
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'table-row' : 'none';
+  }
+}
+
+function checkChampion(data) {
+  const finalists = Object.values(data?.finalists || {});
+  const m1 = data?.finals?.match1;
+  const m2 = data?.finals?.match2;
+  const m3 = data?.finals?.match3;
+  const allDone = m1?.status === 'completed' && m2?.status === 'completed' && m3?.status === 'completed';
+  if (!allDone || finalists.length === 0) { document.getElementById('champion-banner').classList.remove('visible'); return; }
+
+  const scored = finalists.map(f => {
+    let grand = f.qualScore || 0;
+    [m1, m2, m3].forEach(m => {
+      if (!m) return;
+      if (m.placements?.first === f.key) grand += 5;
+      else if (m.placements?.second === f.key) grand += 3;
+      else if (m.placements?.third === f.key) grand += 1;
+      const teamKillsObj = m.kills?.[f.key];
+      if (teamKillsObj) {
+        if (typeof teamKillsObj === 'object') {
+          Object.values(teamKillsObj).forEach(k => { grand += (k || 0); });
+        } else {
+          grand += (teamKillsObj || 0);
+        }
+      }
+    });
+    return { ...f, grandTotal: grand };
+  }).sort((a, b) => b.grandTotal - a.grandTotal);
+
+  if (scored[0]) {
+    document.getElementById('champ-name').textContent = scored[0].name;
+    document.getElementById('champ-score').textContent = `คะแนนรวม: ${scored[0].grandTotal} คะแนน (สาย ${scored[0].group})`;
+    document.getElementById('champion-banner').classList.add('visible');
+  }
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function togglePresentationMode() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+      document.documentElement.webkitRequestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+      document.documentElement.msRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+}
+
+['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    const isFull = document.fullscreenElement || 
+                   document.webkitFullscreenElement || 
+                   document.mozFullScreenElement || 
+                   document.msFullscreenElement;
+    if (isFull) {
+      document.body.classList.add('presentation-mode');
+    } else {
+      document.body.classList.remove('presentation-mode');
+    }
+  });
+});
+
+init();
+</script>
+</body>
+</html>

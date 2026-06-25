@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard — FF Esports Score</title>
+  <meta name="description" content="ตารางคะแนน Real-time การแข่งขัน Free Fire Esports">
+  <link rel="stylesheet" href="style.css?v=10.1">
+  <style>
+    body { background: var(--bg-primary); }
+    .lb-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Header */
+    .lb-top-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px; margin-bottom: 24px;
+    }
+    .lb-title-block h1 { font-size: 32px; font-weight: 900; font-family: 'Orbitron', 'Kanit', sans-serif; letter-spacing: -0.02em; }
+    .lb-title-block p { font-size: 14px; color: var(--text-secondary); }
+
+    /* Group Tabs */
+    .group-tab-bar { 
+      display: flex; gap: 6px; 
+      background: rgba(11, 13, 20, 0.6); 
+      border: 1px solid var(--border); 
+      border-radius: var(--radius-md); 
+      padding: 6px; margin-bottom: 24px; 
+      overflow-x: auto;
+      backdrop-filter: blur(10px);
+    }
+    .g-tab {
+      flex: 1; min-width: 90px; padding: 12px 16px; border-radius: 8px;
+      font-family: 'Orbitron', 'Kanit', sans-serif; font-size: 13px; font-weight: 800;
+      border: 1px solid transparent; background: transparent; cursor: pointer; 
+      color: var(--text-secondary); transition: all 0.2s ease;
+      text-transform: uppercase;
+    }
+    .g-tab:hover { color: var(--white); background: rgba(255,250,200,0.05); }
+    .g-tab.active { 
+      background: #ffffff !important; 
+      color: #000000 !important; 
+      border-color: var(--yellow) !important;
+      box-shadow: 0 4px 15px rgba(255,230,0,0.25) !important;
+    }
+
+    /* All-groups grid */
+    .all-groups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+
+    /* Match sub-scores */
+    .sub-score { font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; }
+    .sub-m { padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 4px; }
+
+    /* Match status indicators */
+    .match-status-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .match-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 800;
+      font-family: 'Orbitron', 'Kanit', sans-serif;
+    }
+    .match-pill-pending { background: rgba(60,70,100,0.2); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.08); }
+    .match-pill-active { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+    .match-pill-done { background: rgba(255,230,0,0.1); color: var(--yellow); border: 1px solid rgba(255,230,0,0.25); }
+
+    /* Auto-refresh info */
+    .refresh-info { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @media (max-width: 768px) {
+      .all-groups-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo">🎮</div>
+      <div>
+        <div class="navbar-title">FF Esports Score</div>
+        <div class="navbar-subtitle">Leaderboard</div>
+      </div>
+    </a>
+    <div class="navbar-nav">
+      <a href="admin.html" class="nav-link">🎮 Admin</a>
+      <a href="finals.html" class="nav-link">🏆 รอบชิง</a>
+    </div>
+  </nav>
+
+  <div class="lb-container">
+
+    <!-- Top Header -->
+    <div class="lb-top-header animate-in">
+      <div class="lb-title-block" style="display:flex;align-items:center;gap:16px">
+        <img src="./school_logos.png" class="header-logo-school" alt="School Logos">
+        <div style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:10px">
+            <img src="./free_fire_logo.png" class="header-logo-game" alt="Free Fire Logo">
+            <h1 style="font-size:32px;font-weight:900;font-family:'Orbitron','Kanit',sans-serif;margin:0;line-height:1"><span class="gradient-text">RANK</span></h1>
+          </div>
+          <p style="margin:4px 0 0 0;font-size:12px;color:var(--text-secondary)">รอบคัดเลือก — อัปเดตอัตโนมัติ Real-time</p>
+        </div>
+      </div>
+      <div class="flex gap-12" style="align-items:center;flex-wrap:wrap">
+        <div class="relative inline-block" id="group-filter-wrapper">
+          <button class="btn btn-secondary btn-sm" onclick="toggleGroupFilter(event)" style="font-family:'Orbitron','Kanit',sans-serif;font-weight:800;gap:6px">
+            ⚙️ เลือกสาย
+          </button>
+          <div class="group-filter-popover hidden" id="group-filter-popover" onclick="event.stopPropagation()">
+            <div style="font-size:12px;font-weight:bold;margin-bottom:8px;color:var(--yellow);font-family:'Kanit',sans-serif">เลือกสายที่จะแสดง:</div>
+            <div style="display:flex;flex-direction:column;gap:4px" id="group-filter-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="togglePresentationMode()" style="font-family:'Orbitron','Kanit',sans-serif;font-weight:800;gap:6px">
+          🖥️ เต็มจอ
+        </button>
+        <div class="match-status-row" id="global-match-status">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="refresh-info">
+          <div class="live-indicator">LIVE</div>
+          <span id="last-update">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group Tab Bar -->
+    <div class="group-tab-bar animate-in animate-in-delay-1">
+      <button class="g-tab active" data-group="ALL" onclick="switchView('ALL')">📊 ภาพรวม</button>
+      <button class="g-tab" data-group="A" onclick="switchView('A')">สาย A</button>
+      <button class="g-tab" data-group="B" onclick="switchView('B')">สาย B</button>
+      <button class="g-tab" data-group="C" onclick="switchView('C')">สาย C</button>
+      <button class="g-tab" data-group="D" onclick="switchView('D')">สาย D</button>
+      <button class="g-tab" data-group="E" onclick="switchView('E')">สาย E</button>
+      <button class="g-tab" data-group="F" onclick="switchView('F')">สาย F</button>
+      <button class="g-tab" data-group="MVP" onclick="switchView('MVP')">🎖️ อันดับ MVP</button>
+    </div>
+
+    <!-- Content Area -->
+    <div id="lb-content" class="animate-in animate-in-delay-2">
+      <!-- Rendered by JS -->
+    </div>
+
+  </div>
+</div>
+
+<script src="firebase-config.js?v=10.1"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="app.js?v=10.1"></script>
+<script>
+// ===== State =====
+let currentView = 'ALL';
+let liveData = {}; // Full Firebase snapshot
+let unsub = null;
+let activeGroups = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+// ===== Group Filter Handlers =====
+function toggleGroupFilter(event) {
+  event.stopPropagation();
+  const popover = document.getElementById('group-filter-popover');
+  if (popover) {
+    popover.classList.toggle('hidden');
+  }
+}
+
+// Close popover when clicking outside
+document.addEventListener('click', () => {
+  const popover = document.getElementById('group-filter-popover');
+  if (popover) {
+    popover.classList.add('hidden');
+  }
+});
+
+function renderGroupFilterCheckboxes() {
+  const container = document.getElementById('group-filter-list');
+  if (!container) return;
+  
+  container.innerHTML = GROUPS.map(g => {
+    const checked = activeGroups.includes(g) ? 'checked' : '';
+    return `<label onclick="event.stopPropagation()">
+      <input type="checkbox" value="${g}" ${checked} onchange="updateGroupFilter()">
+      สาย ${g}
+    </label>`;
+  }).join('');
+}
+
+function updateGroupFilter() {
+  const checkboxes = document.querySelectorAll('#group-filter-list input[type="checkbox"]');
+  activeGroups = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+  
+  renderView(currentView);
+}
+
+function getGridStyle(count) {
+  const isPresentation = document.body.classList.contains('presentation-mode');
+  if (!isPresentation) return '';
+  
+  if (count >= 5) {
+    return 'grid-template-columns: repeat(3, minmax(320px, 480px)) !important; grid-template-rows: repeat(2, 1fr) !important; justify-content: center !important; align-content: center !important;';
+  } else if (count === 4) {
+    return 'grid-template-columns: repeat(2, minmax(320px, 480px)) !important; grid-template-rows: repeat(2, 1fr) !important; justify-content: center !important; align-content: center !important;';
+  } else if (count === 3) {
+    return 'grid-template-columns: repeat(3, minmax(320px, 480px)) !important; grid-template-rows: 1fr !important; justify-content: center !important; align-content: center !important;';
+  } else if (count === 2) {
+    return 'grid-template-columns: repeat(2, minmax(320px, 480px)) !important; grid-template-rows: 1fr !important; justify-content: center !important; align-content: center !important;';
+  } else {
+    return 'grid-template-columns: minmax(320px, 480px) !important; grid-template-rows: 1fr !important; justify-content: center !important; align-content: center !important;';
+  }
+}
+
+function getCardStyle(count) {
+  const isPresentation = document.body.classList.contains('presentation-mode');
+  if (!isPresentation) return '';
+  
+  if (count >= 5) {
+    return 'max-width: 480px !important; max-height: 454px !important;';
+  } else if (count === 4) {
+    return 'max-width: 600px !important; max-height: 454px !important;';
+  } else if (count === 3) {
+    return 'max-width: 480px !important; max-height: 800px !important;';
+  } else if (count === 2) {
+    return 'max-width: 700px !important; max-height: 800px !important;';
+  } else {
+    return 'max-width: 800px !important; max-height: 800px !important;';
+  }
+}
+
+// ===== Init =====
+function init() {
+  initFirebase();
+  renderGroupFilterCheckboxes();
+
+  if (!db) {
+    document.getElementById('lb-content').innerHTML = `
+      <div class="card text-center" style="padding:60px">
+        <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+        <h2>ยังไม่ได้ตั้งค่า Firebase</h2>
+        <p class="text-muted mt-8">ไปที่ <a href="admin-setup.html" style="color:var(--cyan)">หน้าตั้งค่า</a> ก่อน</p>
+      </div>`;
+    return;
+  }
+
+  // Listen to ALL data at root
+  unsub = DB.listen('/', (data) => {
+    liveData = data || {};
+    renderView(currentView);
+    updateLastUpdateTime();
+  });
+}
+
+function updateLastUpdateTime() {
+  document.getElementById('last-update').textContent = new Date().toLocaleTimeString('th-TH');
+}
+
+// ===== View Switching =====
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.g-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.group === view);
+  });
+  renderView(view);
+}
+
+function renderView(view) {
+  const content = document.getElementById('lb-content');
+  
+  // Show/hide group filter button based on view
+  const filterBtn = document.getElementById('group-filter-wrapper');
+  if (filterBtn) {
+    filterBtn.style.display = (view === 'ALL') ? 'inline-block' : 'none';
+  }
+
+  // Update layout classes on content and header
+  const headerEl = document.querySelector('.lb-top-header');
+  if (content) {
+    content.classList.remove('pres-layout-1row', 'pres-layout-2rows');
+  }
+  if (headerEl) {
+    headerEl.classList.remove('pres-layout-1row-header', 'pres-layout-2rows-header');
+  }
+
+  if (view === 'ALL') {
+    const visibleGroups = GROUPS.filter(g => activeGroups.includes(g));
+    if (content) {
+      if (visibleGroups.length <= 3) {
+        content.classList.add('pres-layout-1row');
+      } else {
+        content.classList.add('pres-layout-2rows');
+      }
+    }
+    if (headerEl) {
+      if (visibleGroups.length <= 3) {
+        headerEl.classList.add('pres-layout-1row-header');
+      } else {
+        headerEl.classList.add('pres-layout-2rows-header');
+      }
+    }
+    content.innerHTML = renderAllGroups();
+  } else {
+    // Single view or MVP acts as spacious 1row layout
+    if (content) {
+      content.classList.add('pres-layout-1row');
+    }
+    if (headerEl) {
+      headerEl.classList.add('pres-layout-1row-header');
+    }
+
+    if (view === 'MVP') {
+      content.innerHTML = renderMVPView();
+    } else {
+      content.innerHTML = renderSingleGroup(view);
+    }
+  }
+  renderMatchStatusPills();
+}
+
+function toggleRowDetails(id) {
+  const el = document.getElementById(`details-${id}`);
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'table-row' : 'none';
+  }
+}
+
+// ===== All Groups =====
+function renderAllGroups() {
+  const visibleGroups = GROUPS.filter(g => activeGroups.includes(g));
+  if (visibleGroups.length === 0) {
+    return `<div style="grid-column:span 3;text-align:center;padding:100px;color:var(--text-muted);font-family:'Kanit',sans-serif;">
+      <h2>กรุณาเลือกสายอย่างน้อย 1 สายเพื่อแสดงตาราง</h2>
+    </div>`;
+  }
+  const cardStyle = getCardStyle(visibleGroups.length);
+  return `<div class="all-groups-grid" style="${getGridStyle(visibleGroups.length)}">
+    ${visibleGroups.map(g => renderGroupCard(g, cardStyle)).join('')}
+  </div>`;
+}
+
+function renderGroupCard(g, cardStyle = '') {
+  const color = getGroupColor(g);
+  const teams = buildTeamScores(g);
+
+  const rows = teams.map((t, rank) => {
+    const isAdvance = rank < 2;
+    const rankClass = rank === 0 ? 'lb-rank-1' : rank === 1 ? 'lb-rank-2' : rank === 2 ? 'lb-rank-3' : '';
+    
+    // โหลดรายชื่อผู้เล่นเพื่อทำแถบย่อย
+    const teamData = liveData?.config?.teams?.[g]?.[t.index] || {};
+    const playerNames = teamData.players || getDefaultTeamPlayers(g, t.index);
+    const quals = liveData?.qualifier?.[g] || {};
+
+    const playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;padding:8px">` + playerNames.map((p, pIdx) => {
+      let pKills = 0;
+      for (let m = 1; m <= 2; m++) {
+        pKills += (quals[`match${m}`]?.kills?.[t.index]?.[pIdx] || 0);
+      }
+      return `
+        <div class="player-capsule-detail" style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;border:2px solid #ffe600;border-radius:100px;padding:6px 14px;color:#000000;box-shadow:0 3px 6px rgba(0,0,0,0.15)">
+          <span style="font-weight:700;font-size:12px">${escHtml(p)}</span>
+          <span style="background:#ffe600;color:#000000;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:800;font-family:'Orbitron',sans-serif">💀 ${pKills}</span>
+        </div>`;
+    }).join('') + `</div>`;
+
+    return `
+    <tr class="${isAdvance ? 'advance-row' : ''}" style="cursor:pointer" onclick="toggleRowDetails('${g}_${t.index}')">
+      <td><span class="lb-rank ${rankClass}">${rank+1}</span></td>
+      <td class="lb-team-name">
+        <span style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></span>
+      </td>
+      <td><span class="lb-kills">💀${t.kills}</span></td>
+      <td><span class="lb-score">${t.total}</span></td>
+    </tr>
+    <tr id="details-${g}_${t.index}" style="display:none;">
+      <td colspan="4" style="padding:8px 12px 14px 12px !important">
+        <div style="border-left:3px solid ${color};padding-left:10px">${playersHtml}</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="group-card" style="${cardStyle}">
+    <div class="group-card-header" style="border-left:4px solid ${color};padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="group-card-badge" style="background:${color}20;color:${color};padding:4px 10px;border-radius:8px;font-weight:900;font-size:13px;font-family:'Orbitron',sans-serif">สาย ${g}</div>
+        <div class="group-card-title" style="font-weight: 800; font-size: 16px; font-family:'Outfit',sans-serif">กลุ่ม ${g}</div>
+      </div>
+      ${getGroupMatchStatus(g)}
+    </div>
+    <div class="group-card-body">
+      <table class="lb-mini-table">
+        <thead><tr>
+          <th style="width:50px">#</th><th>ทีม (คลิกดูรายคน)</th><th>Kill</th><th style="text-align:right">คะแนน</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ===== Single Group =====
+function renderSingleGroup(g) {
+  const color = getGroupColor(g);
+  const teams = buildTeamScores(g);
+
+  const rows = teams.map((t, rank) => {
+    const isAdvance = rank < 2;
+    const rankClass = rank === 0 ? 'lb-rank-1' : rank === 1 ? 'lb-rank-2' : rank === 2 ? 'lb-rank-3' : '';
+    const m1 = getMatchScore(g, 1, t.index);
+    const m2 = getMatchScore(g, 2, t.index);
+
+    // โหลดรายชื่อผู้เล่นเพื่อทำแถบย่อย
+    const teamData = liveData?.config?.teams?.[g]?.[t.index] || {};
+    const playerNames = teamData.players || getDefaultTeamPlayers(g, t.index);
+    const quals = liveData?.qualifier?.[g] || {};
+
+    const playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;padding:8px">` + playerNames.map((p, pIdx) => {
+      const p1Kills = quals.match1?.kills?.[t.index]?.[pIdx] || 0;
+      const p2Kills = quals.match2?.kills?.[t.index]?.[pIdx] || 0;
+      const totalK = p1Kills + p2Kills;
+      return `
+        <div class="player-capsule-detail" style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;border:2px solid #ffe600;border-radius:100px;padding:8px 16px;color:#000000;box-shadow:0 3px 8px rgba(0,0,0,0.15)">
+          <div style="display:flex;flex-direction:column">
+            <span style="font-weight:700;font-size:13px">${escHtml(p)}</span>
+            <span style="font-size:10px;color:#666666">ม.1: ${p1Kills} | ม.2: ${p2Kills}</span>
+          </div>
+          <span style="background:#ffe600;color:#000000;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:800;font-family:'Orbitron',sans-serif">💀 ${totalK} K</span>
+        </div>`;
+    }).join('') + `</div>`;
+
+    return `
+    <tr class="${isAdvance ? 'advance-row' : ''}" style="cursor:pointer" onclick="toggleRowDetails('${g}_${t.index}')">
+      <td><span class="single-rank ${rankClass}">${rank+1}</span></td>
+      <td>
+        <div class="lb-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} <span class="expand-arrow" style="font-size:11px;color:#888888">▼</span></div>
+        <div class="sub-score" style="font-size: 11px; color: #666666; display: flex; gap: 8px; margin-top: 2px;">
+          <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 1: ${m1.pl}pl + ${m1.kl}kl</span>
+          <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 2: ${m2.pl}pl + ${m2.kl}kl</span>
+        </div>
+      </td>
+      <td><span class="lb-pl">📍 ${t.placement}</span></td>
+      <td><span class="lb-kills">💀 ${t.kills}</span></td>
+      <td><span class="lb-score" style="font-size:20px">${t.total}</span></td>
+    </tr>
+    <tr id="details-${g}_${t.index}" style="display:none;">
+      <td colspan="5" style="padding:8px 12px 14px 12px !important">
+        <div style="border-left:3px solid ${color};padding-left:12px">${playersHtml}</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="single-group-view">
+    <div class="single-group-header" style="border-left:4px solid ${color};padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="single-group-badge" style="background:${color}20;color:${color};width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-family:'Orbitron',sans-serif">สาย ${g}</div>
+        <div>
+          <h2 style="font-size:22px;font-weight:900;font-family:'Outfit',sans-serif">กลุ่ม ${g}</h2>
+          <p class="text-muted" style="font-size:13px">รอบคัดเลือก · 2 แมตช์ · 12 ทีม · Top 2 ผ่านรอบชิง (คลิกเพื่อดูชื่อรายคน)</p>
+        </div>
+      </div>
+      <div style="margin-left:auto">${getGroupMatchStatus(g)}</div>
+    </div>
+    <table class="single-table">
+      <thead><tr>
+        <th style="width:60px">#</th><th>ทีม</th><th>Placement</th><th>Kill</th><th style="text-align:right">รวม</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderMVPView() {
+  let players = [];
+  GROUPS.forEach(g => {
+    const groupMVP = getGroupMVPLeaderboard(g, liveData);
+    groupMVP.forEach(p => {
+      players.push({
+        ...p,
+        group: g
+      });
+    });
+  });
+
+  players.sort((a, b) => b.kills - a.kills);
+  const topPlayers = players.slice(0, 30);
+
+  const top1 = topPlayers[0];
+  const top2 = topPlayers[1];
+  const top3 = topPlayers[2];
+
+  let podiumHtml = '';
+  if (topPlayers.length > 0) {
+    podiumHtml = `
+    <div class="mvp-podium-container" style="display:flex;justify-content:center;align-items:flex-end;gap:15px;margin:30px auto 40px;max-width:700px;padding:20px 10px;background:rgba(255,230,0,0.03);border-radius:20px;border:1px solid rgba(255,230,0,0.1);box-shadow:inset 0 0 20px rgba(255,230,0,0.02)">
+      
+      <!-- 2nd Place -->
+      ${top2 ? `
+      <div class="podium-item" style="display:flex;flex-direction:column;align-items:center;width:30%;">
+        <div style="font-size:36px;margin-bottom:6px;animation:float 3s ease-in-out infinite">🥈</div>
+        <div style="font-size:14px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top2.name)}</div>
+        <div style="font-size:11px;color:#888888;margin-bottom:8px">${escHtml(top2.teamName)} (${top2.group})</div>
+        <div class="podium-bar" style="width:100%;height:80px;background:linear-gradient(180deg, #b0bec5, rgba(176,190,197,0.1));border-radius:10px 10px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:2px solid #b0bec5;border-bottom:none">
+          <span style="font-size:24px;font-family:'Orbitron',sans-serif">${top2.kills}</span>
+          <span style="font-size:9px;letter-spacing:0.05em">KILLS</span>
+        </div>
+      </div>` : ''}
+
+      <!-- 1st Place -->
+      ${top1 ? `
+      <div class="podium-item" style="display:flex;flex-direction:column;align-items:center;width:35%;margin-top:-20px">
+        <div style="font-size:50px;margin-bottom:4px;animation:float 2.5s ease-in-out infinite">👑</div>
+        <div style="font-size:16px;font-weight:900;color:#ffe600;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top1.name)}</div>
+        <div style="font-size:12px;color:#ffffff;margin-bottom:8px">${escHtml(top1.teamName)} (${top1.group})</div>
+        <div class="podium-bar" style="width:100%;height:120px;background:linear-gradient(180deg, #ffe600, rgba(255,230,0,0.15));border-radius:10px 10px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:2.5px solid #ffe600;border-bottom:none;box-shadow: 0 0 20px rgba(255,230,0,0.3)">
+          <span style="font-size:32px;font-family:'Orbitron',sans-serif">${top1.kills}</span>
+          <span style="font-size:10px;letter-spacing:0.05em">KILLS</span>
+        </div>
+      </div>` : ''}
+
+      <!-- 3rd Place -->
+      ${top3 ? `
+      <div class="podium-item" style="display:flex;flex-direction:column;align-items:center;width:30%;">
+        <div style="font-size:36px;margin-bottom:6px;animation:float 3.5s ease-in-out infinite">🥉</div>
+        <div style="font-size:14px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top3.name)}</div>
+        <div style="font-size:11px;color:#888888;margin-bottom:8px">${escHtml(top3.teamName)} (${top3.group})</div>
+        <div class="podium-bar" style="width:100%;height:60px;background:linear-gradient(180deg, #d7ccc8, rgba(215,204,200,0.1));border-radius:10px 10px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:2px solid #d7ccc8;border-bottom:none">
+          <span style="font-size:20px;font-family:'Orbitron',sans-serif">${top3.kills}</span>
+          <span style="font-size:9px;letter-spacing:0.05em">KILLS</span>
+        </div>
+      </div>` : ''}
+
+    </div>`;
+  }
+
+  const remainingPlayers = topPlayers.slice(3);
+  const rows = remainingPlayers.map((p, index) => {
+    const rank = index + 4;
+    const color = getGroupColor(p.group);
+    return `<tr>
+      <td><span class="single-rank">${rank}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${color}20;color:${color};font-weight:900">สาย ${p.group}</span>
+          <span class="lb-team-name">${escHtml(p.name)}</span>
+        </div>
+      </td>
+      <td><span style="color:#000000;font-weight:700;font-size:13px">${escHtml(p.teamName)}</span></td>
+      <td><span class="lb-kills" style="font-size:16px;color:#e65100">💀 ${p.kills} Kills</span></td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="single-group-view">
+    <div class="single-group-header" style="border-left:4px solid var(--yellow);padding: 20px 24px; border-bottom: 1px solid var(--border);">
+      <div class="single-group-badge" style="background:var(--yellow-dim);color:var(--yellow);width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-family:'Orbitron',sans-serif">🎖️</div>
+      <div>
+        <h2 style="font-size:22px;font-weight:900;font-family:'Outfit',sans-serif">ตารางอันดับ MVP (ผู้เล่น Kill สูงสุด)</h2>
+        <p class="text-muted" style="font-size:13px">จัดอันดับผู้เล่นที่ทำ Kill ได้มากที่สุด 30 อันดับแรกของทัวร์นาเมนต์</p>
+      </div>
+    </div>
+    
+    ${podiumHtml}
+    
+    <table class="single-table">
+      <thead><tr>
+        <th style="width:70px">อันดับ</th><th>ผู้เล่น</th><th>สังกัดทีม</th><th style="text-align:right">จำนวน Kill สะสม</th>
+      </tr></thead>
+      <tbody>
+        ${rows || '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ===== Score Helpers =====
+function buildTeamScores(g) {
+  const teamsData = liveData?.config?.teams?.[g] || {};
+  const quals = liveData?.qualifier?.[g] || {};
+
+  const teams = Array.from({ length: 12 }, (_, i) => {
+    const name = teamsData[i]?.name || getDefaultTeamName(g, i);
+    let pl = 0, kills = 0;
+    for (let m = 1; m <= 2; m++) {
+      const match = quals[`match${m}`];
+      if (!match) continue;
+      if (match.placements?.first == i) pl += 5;
+      else if (match.placements?.second == i) pl += 3;
+      else if (match.placements?.third == i) pl += 1;
+      
+      const teamKillsObj = match.kills?.[i];
+      if (teamKillsObj) {
+        if (typeof teamKillsObj === 'object') {
+          Object.values(teamKillsObj).forEach(k => { kills += (k || 0); });
+        } else {
+          kills += (teamKillsObj || 0);
+        }
+      }
+    }
+    return { index: i, name, placement: pl, kills, total: pl + kills };
+  });
+
+  return teams.sort((a, b) => b.total - a.total || b.kills - a.kills || b.placement - a.placement);
+}
+
+function getMatchScore(g, matchNum, teamIndex) {
+  const match = liveData?.qualifier?.[g]?.[`match${matchNum}`];
+  if (!match) return { pl: 0, kl: 0 };
+  let pl = 0;
+  if (match.placements?.first == teamIndex) pl = 5;
+  else if (match.placements?.second == teamIndex) pl = 3;
+  else if (match.placements?.third == teamIndex) pl = 1;
+  
+  let kl = 0;
+  const teamKillsObj = match.kills?.[teamIndex];
+  if (teamKillsObj) {
+    if (typeof teamKillsObj === 'object') {
+      Object.values(teamKillsObj).forEach(k => { kl += (k || 0); });
+    } else {
+      kl = teamKillsObj || 0;
+    }
+  }
+  return { pl, kl };
+}
+
+function getGroupMatchStatus(g) {
+  const quals = liveData?.qualifier?.[g] || {};
+  const statuses = [1,2].map(m => quals[`match${m}`]?.status || 'pending');
+  const pills = statuses.map((s, i) => {
+    if (s === 'active') return `<span class="match-pill match-pill-active"><span class="status-dot" style="background:var(--green);width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px var(--green)"></span>M${i+1} LIVE</span>`;
+    if (s === 'completed') return `<span class="match-pill match-pill-done">✓ M${i+1}</span>`;
+    return `<span class="match-pill match-pill-pending">M${i+1}</span>`;
+  }).join('');
+  return `<div class="flex gap-4" style="flex-wrap:wrap">${pills}</div>`;
+}
+
+function renderMatchStatusPills() {
+  const container = document.getElementById('global-match-status');
+  const pills = GROUPS.map(g => {
+    const quals = liveData?.qualifier?.[g] || {};
+    const hasActive = [1,2].some(m => quals[`match${m}`]?.status === 'active');
+    if (hasActive) return `<span class="match-pill match-pill-active"><span class="status-dot" style="background:var(--green);width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px var(--green)"></span>สาย ${g} LIVE</span>`;
+    return '';
+  }).filter(Boolean).join('');
+  container.innerHTML = pills || '';
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function togglePresentationMode() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+      document.documentElement.webkitRequestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+      document.documentElement.msRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+}
+
+['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    const isFull = document.fullscreenElement || 
+                   document.webkitFullscreenElement || 
+                   document.mozFullScreenElement || 
+                   document.msFullscreenElement;
+    if (isFull) {
+      document.body.classList.add('presentation-mode');
+    } else {
+      document.body.classList.remove('presentation-mode');
+    }
+    if (typeof renderView === 'function') {
+      renderView(currentView);
+    }
+  });
+});
+
+init();
+</script>
+</body>
+</html>

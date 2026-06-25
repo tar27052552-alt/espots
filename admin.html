@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — FF Esports Score</title>
+  <link rel="stylesheet" href="style.css?v=10.1">
+  <style>
+    body { overflow-y: auto; }
+    .admin-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+    .main-area { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Match selector */
+    .match-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .match-btn {
+      padding: 12px; border-radius: var(--radius-md);
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      color: var(--text-secondary); font-family: 'Orbitron', 'Kanit', sans-serif;
+      font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s;
+      text-align: center; text-transform: uppercase;
+    }
+    .match-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+    .match-btn.active { 
+      background: #ffffff !important; 
+      border-color: var(--yellow) !important; 
+      color: #000000 !important; 
+      box-shadow: 0 4px 15px rgba(255,230,0,0.2) !important; 
+    }
+    .match-btn.completed { border-color: rgba(0,255,136,0.3); color: var(--green); }
+    .match-btn.completed.active { background: #ffffff !important; color: #000000 !important; }
+
+    /* OCR Panel */
+    .ocr-panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .ocr-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .ocr-panel-body { padding: 20px; }
+    #ocr-preview { width: 100%; border-radius: var(--radius-sm); background: #000; display: block; cursor: crosshair; max-height: 220px; object-fit: contain; border: 1.5px solid var(--border); }
+    .ocr-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .ocr-status-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-top: 12px; font-size: 13px; border: 1px solid rgba(255,230,0,0.08); }
+
+    /* Hotkey bar */
+    .hk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    .hk-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .hk-key-btn {
+      width: 100%; padding: 10px 4px;
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--yellow);
+      font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 900;
+      cursor: pointer; transition: all 0.15s; text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .hk-key-btn:hover { background: var(--yellow-dim); border-color: var(--border-hover); }
+    .hk-key-btn.pressed { background: var(--yellow) !important; color: #000000 !important; transform: scale(0.92); box-shadow: none; }
+    .hk-name { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-align: center; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Kill cards */
+    .kill-grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+    .kc { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; transition: all 0.2s; }
+    .kc.has-kills { border-color: rgba(255,230,0,0.3); background: linear-gradient(135deg, rgba(255,230,0,0.04), var(--bg-secondary)); }
+    .kc-name { font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid rgba(255,230,0,0.08); padding-bottom: 4px; }
+    .kc-count { font-size: 28px; font-weight: 900; color: var(--yellow); text-align: center; line-height: 1; margin: 6px 0; font-variant-numeric: tabular-nums; transition: all 0.2s; font-family: 'Orbitron', sans-serif; }
+    .kc-count.flash { animation: killFlash 0.4s ease-out; }
+    .kc-ctrl { display: flex; gap: 6px; justify-content: center; }
+    .kc-btn { flex: 1; padding: 6px; border-radius: 6px; border: 1px solid; font-size: 13px; font-weight: 800; cursor: pointer; font-family: 'Orbitron', 'Kanit', sans-serif; transition: all 0.15s; }
+    .kc-btn-plus { background: rgba(255,230,0,0.12); border-color: rgba(255,230,0,0.3); color: var(--yellow); }
+    .kc-btn-plus:hover { background: rgba(255,230,0,0.25); }
+    .kc-btn-minus { background: rgba(255,45,120,0.1); border-color: rgba(255,45,120,0.2); color: var(--pink); }
+    .kc-btn-minus:hover { background: rgba(255,45,120,0.2); }
+
+    /* Placement */
+    .placement-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .plc { background: var(--bg-secondary); border: 2.5px solid var(--border); border-radius: var(--radius-md); padding: 14px; text-align: center; transition: all 0.2s; }
+    .plc-medal { font-size: 28px; display: block; margin-bottom: 6px; }
+    .plc-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-family: 'Orbitron', sans-serif; }
+    .plc-1 { border-color: rgba(255,215,0,0.2); }
+    .plc-1 .plc-label { color: var(--gold); }
+    .plc-2 { border-color: rgba(192,192,192,0.2); }
+    .plc-2 .plc-label { color: var(--silver); }
+    .plc-3 { border-color: rgba(205,127,50,0.2); }
+    .plc-3 .plc-label { color: var(--bronze); }
+    .plc-selected { border-width: 2.5px !important; }
+    .plc-1.plc-selected { border-color: var(--gold) !important; background: rgba(255,215,0,0.12); }
+    .plc-2.plc-selected { border-color: var(--silver) !important; background: rgba(192,192,192,0.12); }
+    .plc-3.plc-selected { border-color: var(--bronze) !important; background: rgba(205,127,50,0.12); }
+
+    /* Match actions */
+    .match-action-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+    @media (max-width: 900px) {
+      .admin-layout { grid-template-columns: 1fr; }
+      .placement-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo">🎮</div>
+      <div>
+        <div class="navbar-title">FF Esports Score</div>
+        <div class="navbar-subtitle">Admin Panel</div>
+      </div>
+    </a>
+    <div class="navbar-nav">
+      <a href="leaderboard.html" class="nav-link" target="_blank">📊 Leaderboard</a>
+      <a href="admin-setup.html" class="nav-link">⚙️ ตั้งค่า</a>
+    </div>
+  </nav>
+
+  <div class="admin-layout">
+
+    <!-- ===== SIDEBAR ===== -->
+    <div class="sidebar">
+
+      <!-- Group Selector -->
+      <div class="card animate-in">
+        <div class="section-title">🗂️ เลือกสาย</div>
+        <div class="tabs" id="group-tabs" style="flex-wrap:wrap">
+          <button class="tab-btn active" data-group="A" onclick="selectGroup('A')">สาย A</button>
+          <button class="tab-btn" data-group="B" onclick="selectGroup('B')">สาย B</button>
+          <button class="tab-btn" data-group="C" onclick="selectGroup('C')">สาย C</button>
+          <button class="tab-btn" data-group="D" onclick="selectGroup('D')">สาย D</button>
+          <button class="tab-btn" data-group="E" onclick="selectGroup('E')">สาย E</button>
+          <button class="tab-btn" data-group="F" onclick="selectGroup('F')">สาย F</button>
+        </div>
+      </div>
+
+      <!-- Match Selector -->
+      <div class="card animate-in animate-in-delay-1">
+        <div class="section-title">🎮 เลือกแมตช์</div>
+        <div class="match-select-row" id="match-selector">
+          <button class="match-btn active" id="mbtn-1" onclick="selectMatch(1)">⚔️ แมตช์ 1</button>
+          <button class="match-btn" id="mbtn-2" onclick="selectMatch(2)">⚔️ แมตช์ 2</button>
+        </div>
+        <div id="match-status-row" class="mt-16 flex-between">
+          <span id="match-status-badge" class="badge badge-purple"><span class="status-dot status-pending"></span> รอเริ่ม</span>
+          <span id="match-timer" class="font-mono text-muted" style="font-size:13px">00:00</span>
+        </div>
+      </div>
+
+      <!-- Match Actions -->
+      <div class="card animate-in animate-in-delay-1">
+        <div class="section-title">🎯 ควบคุมแมตช์</div>
+        <div class="match-action-bar">
+          <button class="btn btn-success w-full" id="btn-start" onclick="startMatch()">▶ เริ่มแมตช์</button>
+          <button class="btn btn-danger w-full hidden" id="btn-end" onclick="endMatch()">⏹ จบแมตช์</button>
+        </div>
+        <div class="mt-8" id="match-action-info" style="font-size:12px;color:var(--text-muted)">กดเริ่มแมตช์เพื่อเปิดการบันทึก Kill</div>
+      </div>
+
+      <!-- Placement -->
+      <div class="card animate-in animate-in-delay-2" id="placement-panel">
+        <div class="section-title">🏅 กำหนดอันดับ</div>
+        <p class="text-muted mb-12" style="font-size:12px">เลือกทีมที่ได้อันดับ 1–3 ของแมตช์นี้</p>
+        <div class="placement-grid">
+          <div class="plc plc-1">
+            <span class="plc-medal">🥇</span>
+            <div class="plc-label">อันดับ 1 (+5)</div>
+            <select class="form-input" id="plc-first" style="font-size:12px;padding:6px 8px"><option value="">— เลือกทีม —</option></select>
+          </div>
+          <div class="plc plc-2">
+            <span class="plc-medal">🥈</span>
+            <div class="plc-label">อันดับ 2 (+3)</div>
+            <select class="form-input" id="plc-second" style="font-size:12px;padding:6px 8px"><option value="">— เลือกทีม —</option></select>
+          </div>
+          <div class="plc plc-3">
+            <span class="plc-medal">🥉</span>
+            <div class="plc-label">อันดับ 3 (+1)</div>
+            <select class="form-input" id="plc-third" style="font-size:12px;padding:6px 8px"><option value="">— เลือกทีม —</option></select>
+          </div>
+        </div>
+        <button class="btn btn-primary w-full mt-16" onclick="savePlacements()">💾 บันทึกอันดับ</button>
+      </div>
+
+    </div>
+
+    <!-- ===== MAIN AREA ===== -->
+    <div class="main-area">
+
+      <!-- Match Header -->
+      <div id="match-header" class="match-header animate-in">
+        <div class="match-info">
+          <div id="group-badge" class="match-group-badge" style="background:rgba(0,245,255,0.15);color:#00f5ff">A</div>
+          <div class="match-details">
+            <h2 id="match-title">สาย A — แมตช์ 1</h2>
+            <p id="match-subtitle">รอบคัดเลือก · 12 ทีม</p>
+          </div>
+        </div>
+        <div class="flex gap-8 align-items: center">
+          <span class="live-indicator hidden" id="live-badge">LIVE</span>
+        </div>
+      </div>
+
+      <!-- OCR Panel -->
+      <div class="ocr-panel animate-in animate-in-delay-1">
+        <div class="ocr-panel-header">
+          <div class="flex gap-8" style="align-items:center">
+            <div class="ocr-dot" id="ocr-dot"></div>
+            <span style="font-weight:700">🤖 OCR อัตโนมัติ</span>
+            <span id="ocr-status-text" class="text-muted" style="font-size:13px">ยังไม่ได้เริ่ม</span>
+          </div>
+          <div class="flex gap-8">
+            <button class="btn btn-sm btn-secondary" id="btn-ocr-start" onclick="startOCR()">📷 เริ่มจับหน้าจอ</button>
+            <button class="btn btn-sm btn-ghost hidden" id="btn-ocr-scan" onclick="toggleScan()">🔍 เริ่มสแกน</button>
+            <button class="btn btn-sm btn-danger hidden" id="btn-ocr-stop" onclick="stopOCR()">⏹ หยุด</button>
+          </div>
+        </div>
+        <div class="ocr-panel-body">
+          <canvas id="ocr-preview" height="200"></canvas>
+          <p class="text-muted mt-8" style="font-size:12px">💡 ลากบนภาพเพื่อกำหนด Kill Feed Zone (กรอบสีฟ้า) | ค่าเริ่มต้น: มุมบนขวา 45% × 25%</p>
+          <div class="ocr-status-row">
+            <span style="font-size:12px;color:var(--text-muted)">OCR อ่านได้ล่าสุด:</span>
+            <span id="ocr-last-text" style="font-size:12px;font-family:monospace;color:var(--text-secondary);flex:1">—</span>
+          </div>
+          <div class="ocr-log mt-8" id="ocr-log">
+            <div class="ocr-log-entry">[ OCR Log เริ่มต้น... ]</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hotkey Bar -->
+      <div class="card animate-in animate-in-delay-2">
+        <div class="flex-between mb-12">
+          <div class="section-title" style="margin-bottom:0">⌨️ Hotkey Kill (สำรอง)</div>
+          <span class="badge badge-cyan" id="hotkey-status">ปิดอยู่</span>
+        </div>
+        <p class="text-muted mb-12" style="font-size:12px">กดปุ่มตัวเลขบนคีย์บอร์ดเพื่อบันทึก Kill ให้ทีม (ใช้ได้เมื่อเริ่มแมตช์แล้ว)</p>
+        <div class="hk-grid" id="hotkey-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Kill Counters -->
+      <div class="card animate-in animate-in-delay-2">
+        <div class="flex-between mb-12">
+          <div class="section-title" style="margin-bottom:0">💀 Kill Counter</div>
+          <button class="btn btn-sm btn-ghost" onclick="resetKills()">🔄 รีเซ็ต Kill</button>
+        </div>
+        <div class="kill-grid-2" id="kill-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="firebase-config.js?v=10.1"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="app.js?v=10.1"></script>
+<script src="https://unpkg.com/tesseract.js@v5.0.3/dist/tesseract.min.js"></script>
+<script src="ocr.js?v=10.1"></script>
+<script>
+// ===== State =====
+let state = {
+  group: 'A',
+  match: 1,
+  teams: [],
+  kills: {},
+  status: 'pending',
+  placements: { first: null, second: null, third: null }
+};
+let ocrTracker = null;
+let hotkeyMgr = new HotkeyManager();
+let timerInterval = null;
+let matchStartTime = null;
+let unsub = null;
+
+// ===== Init =====
+function init() {
+  initFirebase();
+  loadTeamsFromStorage();
+  selectGroup('A');
+}
+
+function loadTeamsFromStorage() {
+  if (window.DEFAULT_TEAMS_DATA) {
+    state.teamsData = JSON.parse(JSON.stringify(window.DEFAULT_TEAMS_DATA));
+  } else {
+    state.teamsData = {};
+    GROUPS.forEach(g => {
+      state.teamsData[g] = [];
+      for (let i = 0; i < 12; i++) {
+        state.teamsData[g].push({
+          name: getDefaultTeamName(g, i),
+          players: getDefaultTeamPlayers(g, i)
+        });
+      }
+    });
+  }
+}
+
+// ===== Group & Match Selection =====
+function selectGroup(g) {
+  state.group = g;
+  document.querySelectorAll('#group-tabs .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.group === g);
+  });
+  const color = getGroupColor(g);
+  const groupBadge = document.getElementById('group-badge');
+  groupBadge.textContent = g;
+  groupBadge.style.background = `${color}22`;
+  groupBadge.style.color = color;
+  state.teams = getTeamsForGroup(g);
+  renderKillGrid();
+  renderHotkeyGrid();
+  renderPlacementSelects();
+  selectMatch(1);
+}
+
+function getTeamsForGroup(g) {
+  const td = state.teamsData?.[g] || [];
+  return Array.from({ length: 12 }, (_, i) => {
+    const team = td[i] || {};
+    return {
+      index: i,
+      name: team.name || getDefaultTeamName(g, i),
+      players: team.players || getDefaultTeamPlayers(g, i)
+    };
+  });
+}
+
+function selectMatch(m) {
+  state.match = m;
+  document.querySelectorAll('.match-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i + 1) === m);
+  });
+  document.getElementById('match-title').textContent = `สาย ${state.group} — แมตช์ ${m}`;
+  document.getElementById('match-subtitle').textContent = `รอบคัดเลือก · 12 ทีม`;
+
+  // Listen to Firebase for this match
+  if (unsub) unsub();
+  const path = `qualifier/${state.group}/match${m}`;
+  unsub = DB.listen(path, (data) => {
+    if (!data) data = {};
+    state.kills = data.kills || {};
+    state.status = data.status || 'pending';
+    state.placements = data.placements || { first: null, second: null, third: null };
+    updateMatchStatus();
+    updateKillDisplay();
+  });
+}
+
+// ===== Match Control =====
+async function startMatch() {
+  if (state.status === 'active') return;
+  await DB.set(`qualifier/${state.group}/match${state.match}/status`, 'active');
+  matchStartTime = Date.now();
+  startTimer();
+  hotkeyMgr.setTeams(state.teams);
+  // บันทึกเข้าผู้เล่นคนแรก (index 0) ของทีมนั้นๆ เมื่อกด Hotkey
+  hotkeyMgr.enable((idx, name) => recordKill(idx, 0, `⌨️ Hotkey`));
+  document.getElementById('hotkey-status').textContent = 'ทำงาน';
+  document.getElementById('hotkey-status').className = 'badge badge-green';
+  showToast(`เริ่มแมตช์ ${state.match} สาย ${state.group} แล้ว!`, 'success');
+}
+
+async function endMatch() {
+  if (!confirm('ยืนยันจบแมตช์นี้?')) return;
+  await DB.set(`qualifier/${state.group}/match${state.match}/status`, 'completed');
+  stopTimer();
+  hotkeyMgr.disable();
+  document.getElementById('hotkey-status').textContent = 'ปิดอยู่';
+  document.getElementById('hotkey-status').className = 'badge badge-cyan';
+  showToast('จบแมตช์แล้ว! กรุณากำหนดอันดับ 1–3', 'info', 5000);
+
+  // Update match button to show completed
+  const mbtn = document.getElementById(`mbtn-${state.match}`);
+  if (mbtn) mbtn.classList.add('completed');
+}
+
+function updateMatchStatus() {
+  const s = state.status;
+  const badge = document.getElementById('match-status-badge');
+  const startBtn = document.getElementById('btn-start');
+  const endBtn = document.getElementById('btn-end');
+  const liveBadge = document.getElementById('live-badge');
+  const info = document.getElementById('match-action-info');
+  const mbtn = document.getElementById(`mbtn-${state.match}`);
+
+  const statusMap = {
+    pending:   { text: 'รอเริ่ม', cls: 'badge-purple status-pending' },
+    active:    { text: 'กำลังแข่ง', cls: 'badge-green status-active' },
+    completed: { text: 'จบแล้ว', cls: 'badge-cyan status-completed' }
+  };
+  const info2 = statusMap[s] || statusMap.pending;
+  badge.className = `badge ${info2.cls}`;
+  badge.innerHTML = `<span class="status-dot"></span> ${info2.text}`;
+
+  if (s === 'active') {
+    startBtn.classList.add('hidden');
+    endBtn.classList.remove('hidden');
+    liveBadge.classList.remove('hidden');
+    info.textContent = 'แมตช์กำลังดำเนินอยู่ — Kill กำลังถูกบันทึก';
+    if (mbtn) { mbtn.textContent = '⚡ แมตช์ ' + state.match; }
+  } else if (s === 'completed') {
+    startBtn.classList.add('hidden');
+    endBtn.classList.add('hidden');
+    liveBadge.classList.add('hidden');
+    info.textContent = 'แมตช์จบแล้ว — กำหนดอันดับในคอลัมน์ซ้าย';
+    if (mbtn) mbtn.classList.add('completed');
+  } else {
+    startBtn.classList.remove('hidden');
+    endBtn.classList.add('hidden');
+    liveBadge.classList.add('hidden');
+    info.textContent = 'กดเริ่มแมตช์เพื่อเปิดการบันทึก Kill';
+  }
+}
+
+// ===== Kill Recording =====
+async function recordKill(teamIndex, playerIndex = 0, source = 'manual') {
+  if (state.status !== 'active') {
+    showToast('ต้องเริ่มแมตช์ก่อนบันทึก Kill', 'error');
+    return;
+  }
+  const path = `qualifier/${state.group}/match${state.match}/kills/${teamIndex}/${playerIndex}`;
+  const newCount = await DB.increment(path);
+  const team = state.teams[teamIndex];
+  const playerName = team?.players?.[playerIndex] || `ผู้เล่น ${playerIndex + 1}`;
+  showToast(`💀 ${playerName} (+1 Kill) ของทีม ${team.name}`, 'kill', 2000);
+}
+
+async function removeKill(teamIndex, playerIndex = 0) {
+  const teamKills = state.kills[teamIndex] || {};
+  const cur = teamKills[playerIndex] || 0;
+  if (cur <= 0) return;
+  const path = `qualifier/${state.group}/match${state.match}/kills/${teamIndex}/${playerIndex}`;
+  await DB.set(path, cur - 1);
+}
+
+async function resetKills() {
+  if (!confirm('รีเซ็ต Kill ทั้งหมดในแมตช์นี้?')) return;
+  await DB.set(`qualifier/${state.group}/match${state.match}/kills`, null);
+  showToast('รีเซ็ต Kill แล้ว', 'info');
+}
+
+// ===== Placement =====
+function renderPlacementSelects() {
+  const opts = state.teams.map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+  ['first','second','third'].forEach(k => {
+    const el = document.getElementById(`plc-${k}`);
+    if (el) el.innerHTML = `<option value="">— เลือกทีม —</option>${opts}`;
+  });
+  // Restore current
+  if (state.placements) {
+    if (state.placements.first !== null) document.getElementById('plc-first').value = state.placements.first;
+    if (state.placements.second !== null) document.getElementById('plc-second').value = state.placements.second;
+    if (state.placements.third !== null) document.getElementById('plc-third').value = state.placements.third;
+  }
+}
+
+async function savePlacements() {
+  const first = document.getElementById('plc-first').value;
+  const second = document.getElementById('plc-second').value;
+  const third = document.getElementById('plc-third').value;
+
+  if (!first && !second && !third) {
+    showToast('กรุณาเลือกอย่างน้อย 1 อันดับ', 'error');
+    return;
+  }
+
+  const pl = {};
+  if (first !== '') pl.first = parseInt(first);
+  if (second !== '') pl.second = parseInt(second);
+  if (third !== '') pl.third = parseInt(third);
+
+  await DB.update(`qualifier/${state.group}/match${state.match}`, { placements: pl });
+  showToast('บันทึกอันดับสำเร็จ ✅', 'success');
+
+  // Auto-promote if both matches done — check and offer to push finalists
+  checkAndPromoteFinalists();
+}
+
+async function checkAndPromoteFinalists() {
+  const m1 = await DB.get(`qualifier/${state.group}/match1`);
+  const m2 = await DB.get(`qualifier/${state.group}/match2`);
+  if (m1?.status === 'completed' && m2?.status === 'completed') {
+    const lb = getGroupLeaderboard(state.group, {
+      qualifier: { [state.group]: { match1: m1, match2: m2 } },
+      config: { teams: { [state.group]: {} } }
+    });
+    // Build from local teams
+    const teams = state.teams;
+    const scored = teams.map((t, i) => {
+      let pl = 0, kl = 0;
+      [m1, m2].forEach(m => {
+        if (!m) return;
+        if (m.placements?.first == i) pl += 5;
+        else if (m.placements?.second == i) pl += 3;
+        else if (m.placements?.third == i) pl += 1;
+        const teamKillsObj = m.kills?.[i];
+        if (teamKillsObj) {
+          if (typeof teamKillsObj === 'object') {
+            Object.values(teamKillsObj).forEach(k => { kl += (k || 0); });
+          } else {
+            kl += (teamKillsObj || 0);
+          }
+        }
+      });
+      return { ...t, total: pl + kl };
+    }).sort((a, b) => b.total - a.total);
+
+    const top2 = scored.slice(0, 2);
+    if (confirm(`✅ แมตช์ครบ 2 แล้ว!\nTop 2 สาย ${state.group}:\n1. ${top2[0]?.name} (${top2[0]?.total} คะแนน)\n2. ${top2[1]?.name} (${top2[1]?.total} คะแนน)\n\nผลักดันไปรอบชิงชนะเลิศ?`)) {
+      for (const team of top2) {
+        const key = `${state.group}_${team.index}`;
+        await DB.set(`finalists/${key}`, {
+          key, name: team.name, group: state.group,
+          teamIndex: team.index, qualScore: team.total
+        });
+      }
+      showToast(`ส่ง ${top2.map(t => t.name).join(', ')} ไปรอบชิงแล้ว 🏆`, 'success', 5000);
+    }
+  }
+}
+
+// ===== Render Kill Grid =====
+function renderKillGrid() {
+  const color = getGroupColor(state.group);
+  const grid = document.getElementById('kill-grid');
+  grid.innerHTML = state.teams.map((t, i) => {
+    const playersHtml = t.players.map((p, pIdx) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:12px;background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:4px">
+        <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:115px;color:var(--text-primary)" title="${p}">${p}</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span style="font-weight:900;color:var(--orange);font-size:13px;margin-right:6px" id="kc-count-${i}-${pIdx}">0</span>
+          <button class="kc-btn kc-btn-minus" style="padding:2px 6px;font-size:10px" onclick="removeKill(${i}, ${pIdx})">−</button>
+          <button class="kc-btn kc-btn-plus" style="padding:2px 6px;font-size:10px" onclick="recordKill(${i}, ${pIdx}, 'manual')">+K</button>
+        </div>
+      </div>
+    `).join('');
+
+    return `
+    <div class="kc" id="kc-${i}" style="display:flex;flex-direction:column;justify-content:space-between;padding:12px">
+      <div>
+        <div class="kc-name" title="${t.name}" style="border-bottom:1px solid rgba(0,245,255,0.08);padding-bottom:4px;margin-bottom:6px;font-weight:800;color:var(--cyan)">${i+1}. ${t.name}</div>
+        <div style="font-size:11px;color:var(--text-secondary);display:flex;justify-content:space-between;align-items:center">
+          <span>Kill รวมทีม:</span>
+          <span class="kc-count" id="kc-count-${i}" style="font-size:18px;margin:0;color:var(--orange);font-weight:900">0</span>
+        </div>
+      </div>
+      <div style="margin-top:8px">${playersHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateKillDisplay() {
+  state.teams.forEach((t, i) => {
+    let totalKills = 0;
+    const teamKillsObj = state.kills[i] || {};
+    
+    t.players.forEach((_, pIdx) => {
+      const count = typeof teamKillsObj === 'object' ? (teamKillsObj[pIdx] || 0) : 0;
+      totalKills += count;
+      
+      const pEl = document.getElementById(`kc-count-${i}-${pIdx}`);
+      if (pEl) pEl.textContent = count;
+    });
+
+    // หากเป็นตัวเลขสะสมเดิม (แบบเก่า) ให้ดึงตัวเลขนั้นมาเลย
+    if (typeof teamKillsObj !== 'object') {
+      totalKills = teamKillsObj || 0;
+    }
+
+    const el = document.getElementById(`kc-count-${i}`);
+    const card = document.getElementById(`kc-${i}`);
+    if (el) {
+      const prev = parseInt(el.textContent) || 0;
+      el.textContent = totalKills;
+      if (totalKills > prev) {
+        el.classList.add('flash');
+        setTimeout(() => el.classList.remove('flash'), 400);
+      }
+    }
+    if (card) card.classList.toggle('has-kills', totalKills > 0);
+  });
+  // Restore placements in dropdowns
+  renderPlacementSelects();
+}
+
+// ===== Render Hotkey Grid =====
+function renderHotkeyGrid() {
+  const keys = ['1','2','3','4','5','6','7','8','9','0','-','='];
+  const grid = document.getElementById('hotkey-grid');
+  grid.innerHTML = state.teams.map((t, i) => `
+    <div class="hk-item">
+      <button class="hk-key-btn" data-key="${keys[i]}" data-idx="${i}" id="hk-${keys[i]}" onclick="recordKill(${i}, 0, 'hotkey')">${keys[i]}</button>
+      <div class="hk-name" title="${t.name}">${t.name}</div>
+    </div>`).join('');
+}
+
+// ===== Timer =====
+function startTimer() {
+  clearInterval(timerInterval);
+  matchStartTime = matchStartTime || Date.now();
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - matchStartTime) / 1000);
+    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('match-timer').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function stopTimer() { clearInterval(timerInterval); }
+
+// ===== OCR =====
+let ocrScanning = false;
+
+async function startOCR() {
+  if (!ocrTracker) {
+    ocrTracker = new OCRKillTracker();
+    ocrTracker.onKill = (tIdx, pIdx, name) => { recordKill(tIdx, pIdx, 'OCR'); };
+    ocrTracker.onOCRResult = (text) => {
+      document.getElementById('ocr-last-text').textContent = text.slice(0, 80) || '—';
+    };
+    ocrTracker.onLog = (msg, type) => {
+      const log = document.getElementById('ocr-log');
+      const entry = document.createElement('div');
+      entry.className = `ocr-log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString('th-TH')}] ${msg}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+      // Trim
+      while (log.children.length > 50) log.removeChild(log.firstChild);
+    };
+    ocrTracker.onStatusChange = (s) => {
+      const dot = document.getElementById('ocr-dot');
+      const txt = document.getElementById('ocr-status-text');
+      if (s === 'running') { dot.className = 'ocr-dot active'; txt.textContent = 'กำลังทำงาน'; }
+      else if (s === 'error') { dot.className = 'ocr-dot error'; txt.textContent = 'ข้อผิดพลาด'; }
+      else { dot.className = 'ocr-dot'; txt.textContent = 'หยุดทำงาน'; }
+    };
+    ocrTracker.setTeams(state.teams);
+  }
+
+  const canvas = document.getElementById('ocr-preview');
+  const captured = await ocrTracker.startCapture(canvas);
+  if (!captured) return;
+
+  ocrTracker.enableZoneSelector(canvas);
+  document.getElementById('btn-ocr-start').classList.add('hidden');
+  document.getElementById('btn-ocr-scan').classList.remove('hidden');
+  document.getElementById('btn-ocr-stop').classList.remove('hidden');
+
+  // Init worker
+  await ocrTracker.initWorker();
+}
+
+async function toggleScan() {
+  if (!ocrTracker) return;
+  if (ocrScanning) {
+    ocrTracker.stopScanning();
+    ocrScanning = false;
+    document.getElementById('btn-ocr-scan').textContent = '🔍 เริ่มสแกน';
+    document.getElementById('btn-ocr-scan').className = 'btn btn-sm btn-secondary';
+  } else {
+    ocrTracker.startScanning();
+    ocrScanning = true;
+    document.getElementById('btn-ocr-scan').textContent = '⏸ หยุดสแกน';
+    document.getElementById('btn-ocr-scan').className = 'btn btn-sm btn-warning';
+  }
+}
+
+async function stopOCR() {
+  if (ocrTracker) { await ocrTracker.stop(); ocrTracker = null; ocrScanning = false; }
+  document.getElementById('btn-ocr-start').classList.remove('hidden');
+  document.getElementById('btn-ocr-scan').classList.add('hidden');
+  document.getElementById('btn-ocr-stop').classList.add('hidden');
+  document.getElementById('btn-ocr-scan').textContent = '🔍 เริ่มสแกน';
+  document.getElementById('btn-ocr-scan').className = 'btn btn-sm btn-secondary';
+}
+
+// ===== Boot =====
+init();
+</script>
+</body>
+</html>

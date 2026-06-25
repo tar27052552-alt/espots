@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตั้งค่าระบบ — FF Esports Score</title>
+  <link rel="stylesheet" href="style.css?v=10.0">
+  <style>
+    .setup-container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+    .firebase-guide {
+      background: var(--bg-card2);
+      border: 1px solid rgba(168,85,247,0.3);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    .firebase-guide ol { padding-left: 20px; }
+    .firebase-guide li { margin-bottom: 4px; }
+    .firebase-guide a { color: var(--cyan); }
+    .config-input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .group-section { margin-bottom: 24px; }
+    .group-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .group-badge {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 16px;
+    }
+    .conn-result {
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .conn-ok { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+    .conn-fail { background: var(--pink-dim); color: var(--pink); border: 1px solid rgba(255,45,120,0.3); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    @media (max-width: 600px) { .config-input-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo">🎮</div>
+      <div>
+        <div class="navbar-title">FF Esports Score</div>
+        <div class="navbar-subtitle">ระบบนับคะแนนอีสปอร์ต</div>
+      </div>
+    </a>
+    <div class="navbar-nav">
+      <a href="index.html" class="nav-link">🏠 หน้าหลัก</a>
+      <a href="admin.html" class="nav-link">🎮 Admin</a>
+      <a href="leaderboard.html" class="nav-link">🏆 Leaderboard</a>
+    </div>
+  </nav>
+
+  <div class="setup-container">
+    <div class="animate-in">
+      <h1 class="page-title mb-8">⚙️ ตั้งค่าระบบ</h1>
+      <p class="text-muted mb-24">กรอก Firebase Config และชื่อทีมก่อนเริ่มการแข่งขัน</p>
+    </div>
+
+    <!-- Main Tabs -->
+    <div class="tabs mb-24 animate-in animate-in-delay-1">
+      <button class="tab-btn active" id="tab-firebase" onclick="switchTab('firebase')">🔥 Firebase Config</button>
+      <button class="tab-btn" id="tab-teams" onclick="switchTab('teams')">👥 ชื่อทีม</button>
+      <button class="tab-btn" id="tab-reset" onclick="switchTab('reset')">🗑️ รีเซ็ต</button>
+    </div>
+
+    <!-- ===== TAB: FIREBASE ===== -->
+    <div id="panel-firebase" class="tab-panel active animate-in animate-in-delay-2">
+
+      <!-- Guide -->
+      <div class="card mb-24">
+        <div class="section-title">📋 วิธีสร้าง Firebase Project (ฟรี)</div>
+        <div class="firebase-guide">
+          <ol>
+            <li>ไปที่ <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → คลิก <strong>"Add project"</strong></li>
+            <li>ตั้งชื่อ Project เช่น <code>ff-esports-score</code> → Next → Disable Analytics → Create</li>
+            <li>เมื่อสร้างเสร็จ: คลิกไอคอน <strong>Web</strong> (<code>&lt;/&gt;</code>) → ลงทะเบียน App → Copy ค่า <code>firebaseConfig</code></li>
+            <li>ไปที่เมนู <strong>Realtime Database</strong> → "Create database" → เลือก <strong>Asia-Southeast1</strong> → Start in <strong>test mode</strong></li>
+            <li>กลับมากรอก API Key ด้านล่าง แล้วกด "บันทึกและทดสอบ"</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Config Form -->
+      <div class="card mb-24">
+        <div class="section-title">🔑 Firebase Config</div>
+        <div class="config-input-grid">
+          <div class="form-group">
+            <label class="form-label">apiKey</label>
+            <input type="text" id="cfg-apiKey" class="form-input" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">projectId</label>
+            <input type="text" id="cfg-projectId" class="form-input" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">databaseURL</label>
+            <input type="text" id="cfg-databaseURL" class="form-input" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">authDomain</label>
+            <input type="text" id="cfg-authDomain" class="form-input" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">storageBucket</label>
+            <input type="text" id="cfg-storageBucket" class="form-input" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">messagingSenderId</label>
+            <input type="text" id="cfg-messagingSenderId" class="form-input" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">appId</label>
+            <input type="text" id="cfg-appId" class="form-input" disabled>
+          </div>
+        </div>
+
+        <div id="conn-result" class="conn-result hidden"></div>
+
+        <div class="flex gap-12 mt-16">
+          <button class="btn btn-primary" onclick="testConnectionOnly()">⚡ ทดสอบการเชื่อมต่อ Firebase</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📝 วิธีตั้งค่า firebase-config.js</div>
+        <p class="text-muted mb-16" style="font-size:13px">หลังบันทึก ค่าจะเก็บใน localStorage แต่ถ้าต้องการใช้หลายเครื่อง ให้คัดลอกค่าไปใส่ใน <code>firebase-config.js</code> โดยตรง</p>
+        <pre id="config-preview" style="background:#000;padding:14px;border-radius:8px;font-size:12px;color:#00f5ff;overflow-x:auto;line-height:1.8;">// กรอก config ด้านบน แล้วกดบันทึกเพื่อดู code</pre>
+      </div>
+
+    </div>
+
+    <!-- ===== TAB: TEAMS ===== -->
+    <div id="panel-teams" class="tab-panel">
+
+      <div class="card mb-16">
+        <div class="flex-between mb-16">
+          <div>
+            <div class="section-title" style="margin-bottom:4px">👥 ชื่อทีมทั้ง 6 สาย</div>
+            <p class="text-muted" style="font-size:13px">ใส่ชื่อทีมให้ตรงกับ In-game Name ใน Free Fire เพื่อให้ OCR ทำงานได้แม่นยำ</p>
+          </div>
+          <button class="btn btn-primary" onclick="saveTeams()">💾 บันทึกทีมทั้งหมด</button>
+        </div>
+
+        <!-- Group Tabs -->
+        <div class="tabs mb-20" id="group-tabs">
+          <button class="tab-btn active" data-group="A" onclick="switchGroup('A')">สาย A</button>
+          <button class="tab-btn" data-group="B" onclick="switchGroup('B')">สาย B</button>
+          <button class="tab-btn" data-group="C" onclick="switchGroup('C')">สาย C</button>
+          <button class="tab-btn" data-group="D" onclick="switchGroup('D')">สาย D</button>
+          <button class="tab-btn" data-group="E" onclick="switchGroup('E')">สาย E</button>
+          <button class="tab-btn" data-group="F" onclick="switchGroup('F')">สาย F</button>
+        </div>
+
+        <!-- Team inputs (rendered per group) -->
+        <div id="team-inputs-container"></div>
+      </div>
+
+    </div>
+
+    <!-- ===== TAB: RESET ===== -->
+    <div id="panel-reset" class="tab-panel">
+      <div class="card">
+        <div class="section-title">⚠️ รีเซ็ตข้อมูล</div>
+        <p class="text-muted mb-24">การรีเซ็ตจะลบข้อมูลคะแนนทั้งหมดออกจาก Firebase (ชื่อทีมจะยังคงอยู่)</p>
+
+        <div class="flex gap-12" style="flex-wrap:wrap">
+          <button class="btn btn-warning" onclick="resetMatches()">🔄 รีเซ็ตคะแนนทั้งหมด</button>
+          <button class="btn btn-danger" onclick="resetAll()">🗑️ รีเซ็ตทุกอย่าง (รวมทีม)</button>
+        </div>
+        <div id="reset-result" class="mt-16 hidden"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="firebase-config.js?v=10.0"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="app.js?v=10.0"></script>
+<script>
+// ===== State =====
+let currentGroup = 'A';
+let teamData = {};
+GROUPS.forEach(g => { teamData[g] = Array(12).fill(''); });
+
+// ===== Tab Switching =====
+function switchTab(tab) {
+  ['firebase','teams','reset'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`panel-${t}`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'teams') { renderTeamInputs(currentGroup); }
+}
+
+function switchGroup(g) {
+  currentGroup = g;
+  document.querySelectorAll('#group-tabs .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.group === g);
+  });
+  renderTeamInputs(g);
+}
+
+// ===== Firebase Config =====
+async function testConnectionOnly() {
+  const resultEl = document.getElementById('conn-result');
+  resultEl.textContent = '⏳ กำลังทดสอบการเชื่อมต่อ...';
+  resultEl.className = 'conn-result';
+  resultEl.classList.remove('hidden');
+
+  try {
+    const ok = initFirebase();
+    if (!ok) throw new Error('init failed');
+
+    await DB.set('_test', { ts: Date.now() });
+    resultEl.textContent = '✅ เชื่อมต่อ Firebase สำเร็จ! ระบบพร้อมใช้งาน';
+    resultEl.className = 'conn-result conn-ok';
+    showToast('เชื่อมต่อ Firebase สำเร็จ!', 'success');
+  } catch (e) {
+    resultEl.textContent = '❌ เชื่อมต่อไม่ได้: ' + e.message;
+    resultEl.className = 'conn-result conn-fail';
+    showToast('เชื่อมต่อ Firebase ไม่ได้', 'error');
+  }
+}
+
+function updateConfigPreview(cfg) {
+  const pre = document.getElementById('config-preview');
+  pre.textContent = `const FIREBASE_CONFIG = {\n  apiKey: "${cfg.apiKey}",\n  authDomain: "${cfg.authDomain}",\n  databaseURL: "${cfg.databaseURL}",\n  projectId: "${cfg.projectId}",\n  storageBucket: "${cfg.storageBucket}",\n  messagingSenderId: "${cfg.messagingSenderId}",\n  appId: "${cfg.appId}"\n};`;
+}
+
+// ===== Teams =====
+async function loadTeamsFromStorage() {
+  localStorage.removeItem('ff_teams'); // เคลียร์เพื่อไม่ให้ใช้ค่าตกค้าง
+  
+  if (db) {
+    try {
+      const dbTeams = await DB.get('config/teams');
+      if (dbTeams && Object.keys(dbTeams).length > 0) {
+        teamData = dbTeams;
+        return;
+      }
+    } catch (e) {
+      console.warn('[Firebase] โหลดชื่อทีมล้มเหลว: ', e);
+    }
+  }
+  
+  const defaultData = typeof DEFAULT_TEAMS_DATA !== 'undefined' ? DEFAULT_TEAMS_DATA : null;
+  if (defaultData) {
+    teamData = JSON.parse(JSON.stringify(defaultData));
+  } else {
+    teamData = {};
+    GROUPS.forEach(g => {
+      teamData[g] = [];
+      for (let i = 0; i < 12; i++) {
+        teamData[g].push({
+          name: getDefaultTeamName(g, i),
+          players: getDefaultTeamPlayers(g, i)
+        });
+      }
+    });
+  }
+}
+
+function renderTeamInputs(g) {
+  const color = getGroupColor(g);
+  const container = document.getElementById('team-inputs-container');
+  let html = `<div class="group-header" style="background:linear-gradient(90deg,${color}18,transparent);border-left:3px solid ${color}">
+    <div class="group-badge" style="background:${color}22;color:${color}">สาย ${g}</div>
+    <span>รายชื่อทีมและผู้เล่นในสาย ${g} (12 ทีม)</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">`;
+
+  for (let i = 0; i < 12; i++) {
+    const team = teamData[g]?.[i] || {};
+    const teamName = team.name || getDefaultTeamName(g, i);
+    const players = team.players || getDefaultTeamPlayers(g, i);
+    
+    html += `<div class="card" style="padding:16px;background:var(--bg-card2);border:1px solid var(--border)">
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" style="color:var(--yellow);font-weight:700">ทีมที่ ${i+1}</label>
+        <input type="text" class="form-input" value="${teamName}" oninput="updateTeamName('${g}', ${i}, this.value)" style="font-weight:700">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding-left:12px;border-left:2px solid ${color}40">
+        <label class="form-label" style="font-size:11px;color:var(--text-secondary)">รายชื่อผู้เล่นในทีม:</label>
+        ${players.map((p, pIdx) => `
+          <input type="text" class="form-input" value="${p || ''}" oninput="updatePlayerName('${g}', ${i}, ${pIdx}, this.value)" style="font-size:12px;padding:6px 10px">
+        `).join('')}
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function updateTeamName(g, teamIndex, value) {
+  if (!teamData[g]) teamData[g] = [];
+  if (!teamData[g][teamIndex]) {
+    teamData[g][teamIndex] = { name: '', players: getDefaultTeamPlayers(g, teamIndex) };
+  }
+  teamData[g][teamIndex].name = value;
+}
+
+function updatePlayerName(g, teamIndex, playerIndex, value) {
+  if (!teamData[g]) teamData[g] = [];
+  if (!teamData[g][teamIndex]) {
+    teamData[g][teamIndex] = { name: getDefaultTeamName(g, teamIndex), players: getDefaultTeamPlayers(g, teamIndex) };
+  }
+  if (!teamData[g][teamIndex].players) {
+    teamData[g][teamIndex].players = getDefaultTeamPlayers(g, teamIndex);
+  }
+  teamData[g][teamIndex].players[playerIndex] = value;
+}
+
+async function saveTeams() {
+  if (!db) initFirebase();
+
+  if (db) {
+    try {
+      await DB.set('config/teams', teamData);
+      showToast('บันทึกรายชื่อทีมและผู้เล่นไปยัง Firebase สำเร็จ! ✅', 'success');
+    } catch(e) {
+      showToast('เกิดข้อผิดพลาดในการบันทึกไป Firebase: ' + e.message, 'error');
+    }
+  } else {
+    showToast('เชื่อมต่อ Firebase ไม่สำเร็จ กรุณาตรวจสอบการตั้งค่า', 'error');
+  }
+}
+
+// ===== Reset =====
+async function resetMatches() {
+  if (!confirm('รีเซ็ตคะแนนทั้งหมด? (ชื่อทีมและผู้เล่นจะยังคงอยู่)')) return;
+  if (!db) { showToast('Firebase ยังไม่ได้ตั้งค่า', 'error'); return; }
+  await DB.set('qualifier', null);
+  await DB.set('finals', null);
+  await DB.set('finalists', null);
+  showToast('รีเซ็ตคะแนนทั้งหมดแล้ว', 'success');
+}
+
+async function resetAll() {
+  if (!confirm('รีเซ็ตทุกอย่างรวมทั้งชื่อทีม? ไม่สามารถกู้คืนได้!')) return;
+  if (!confirm('ยืนยันอีกครั้ง — ข้อมูลทั้งหมดจะถูกลบ')) return;
+  if (!db) { showToast('Firebase ยังไม่ได้ตั้งค่า', 'error'); return; }
+  await DB.set('/', null);
+  localStorage.removeItem('ff_teams');
+  await loadTeamsFromStorage();
+  renderTeamInputs(currentGroup);
+  showToast('รีเซ็ตทุกอย่างแล้ว', 'success');
+}
+
+// ===== Init =====
+async function init() {
+  // ล้างค่าตกค้างใน localStorage เพื่อไม่ให้กระทบระบบอื่นๆ
+  localStorage.removeItem('ff_firebase_config');
+
+  // โหลดค่าจาก firebase-config.js ตรงๆ
+  if (FIREBASE_CONFIG) {
+    Object.keys(FIREBASE_CONFIG).forEach(k => {
+      const el = document.getElementById(`cfg-${k}`);
+      if (el) el.value = FIREBASE_CONFIG[k] || '';
+    });
+    updateConfigPreview(FIREBASE_CONFIG);
+  }
+  initFirebase();
+  await loadTeamsFromStorage();
+}
+
+init();
+</script>
+</body>
+</html>

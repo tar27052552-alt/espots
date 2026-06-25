@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Fire Esports — ระบบนับคะแนน</title>
+  <meta name="description" content="ระบบนับคะแนนอีสปอร์ต Free Fire โรงเรียน แบบ Real-time">
+  <link rel="stylesheet" href="style.css?v=10.0">
+  <style>
+    .hero { padding: 100px 24px 60px; }
+    .hero-logo { font-size: 80px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+    .hero-tagline { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 12px; }
+    .fire-divider { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 40px 0; }
+    .fire-divider-line { height: 1px; width: 120px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+    .stats-row { display: flex; justify-content: center; gap: 48px; margin-bottom: 48px; }
+    .stat-item { text-align: center; }
+    .stat-number { font-size: 38px; font-weight: 900; color: var(--yellow); font-family: 'Orbitron', sans-serif; text-shadow: 0 0 15px rgba(255,230,0,0.3); }
+    .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .group-preview { display: flex; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .group-chip {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; border-radius: 12px;
+      font-weight: 900; font-size: 18px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-family: 'Orbitron', sans-serif;
+    }
+    .group-chip:hover { transform: translateY(-4px); }
+    .group-chip-A { background: rgba(255,230,0,0.15); color: #ffe600; box-shadow: 0 0 15px rgba(255,230,0,0.2); }
+    .group-chip-B { background: rgba(255,45,120,0.15); color: #ff2d78; box-shadow: 0 0 15px rgba(255,45,120,0.2); }
+    .group-chip-C { background: rgba(168,85,247,0.15); color: #a855f7; box-shadow: 0 0 15px rgba(168,85,247,0.2); }
+    .group-chip-D { background: rgba(0,255,136,0.15); color: #00ff88; box-shadow: 0 0 15px rgba(0,255,136,0.2); }
+    .group-chip-E { background: rgba(255,122,0,0.15); color: #ff7a00; box-shadow: 0 0 15px rgba(255,122,0,0.2); }
+    .group-chip-F { background: rgba(255,215,0,0.15); color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.2); }
+    .firebase-warning-banner {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,45,120,0.15); border: 1px solid rgba(255,45,120,0.4);
+      border-radius: 12px; padding: 14px 24px;
+      display: flex; align-items: center; gap: 12px;
+      font-size: 14px; font-weight: 600; color: var(--pink);
+      z-index: 100; backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo">🎮</div>
+      <div>
+        <div class="navbar-title">FF Esports Score</div>
+        <div class="navbar-subtitle">ระบบนับคะแนนอีสปอร์ต</div>
+      </div>
+    </a>
+    <div class="navbar-nav">
+      <a href="admin-setup.html" class="nav-link">⚙️ ตั้งค่า</a>
+      <a href="admin.html" class="nav-link">🎮 Admin</a>
+      <a href="leaderboard.html" class="nav-link">🏆 Leaderboard</a>
+      <a href="finals.html" class="nav-link">🥊 รอบชิง</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero text-center animate-in">
+    <div class="hero-logo">🔥</div>
+    <div class="hero-tagline">
+      <span class="badge badge-cyan">🎮 Free Fire</span>
+      <span class="badge badge-pink">⚡ Real-time</span>
+      <span class="badge badge-gold">🏆 Esports</span>
+    </div>
+    <h1 class="hero-title">
+      <span class="gradient-text">ระบบนับคะแนน</span><br>
+      อีสปอร์ตโรงเรียน
+    </h1>
+    <p class="hero-desc">จัดการการแข่งขัน Free Fire แบบ Real-time<br>รองรับ 6 สาย พร้อม OCR ตรวจ Kill อัตโนมัติ</p>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-number">6</div>
+        <div class="stat-label">สาย</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">72</div>
+        <div class="stat-label">ทีม</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">12+3</div>
+        <div class="stat-label">แมตช์</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="firebase-status-num">—</div>
+        <div class="stat-label">สถานะ Firebase</div>
+      </div>
+    </div>
+
+    <!-- Group chips -->
+    <div class="group-preview">
+      <div class="group-chip group-chip-A">A</div>
+      <div class="group-chip group-chip-B">B</div>
+      <div class="group-chip group-chip-C">C</div>
+      <div class="group-chip group-chip-D">D</div>
+      <div class="group-chip group-chip-E">E</div>
+      <div class="group-chip group-chip-F">F</div>
+    </div>
+  </section>
+
+  <div class="fire-divider">
+    <div class="fire-divider-line"></div>
+    <span style="font-size:20px">🔥</span>
+    <div class="fire-divider-line"></div>
+  </div>
+
+  <!-- Navigation Cards -->
+  <div class="nav-cards">
+
+    <a href="admin-setup.html" class="nav-card nav-card-setup animate-in animate-in-delay-1">
+      <span class="nav-card-icon">⚙️</span>
+      <div class="nav-card-title">ตั้งค่าระบบ</div>
+      <div class="nav-card-desc">กรอก Firebase Config และชื่อทีมทั้ง 6 สาย<br>ทำครั้งเดียวก่อนเริ่มการแข่งขัน</div>
+      <div class="mt-16">
+        <span class="badge badge-purple">Setup Guide</span>
+      </div>
+    </a>
+
+    <a href="admin.html" class="nav-card nav-card-admin animate-in animate-in-delay-2">
+      <span class="nav-card-icon">🎮</span>
+      <div class="nav-card-title">Admin Panel</div>
+      <div class="nav-card-desc">กรอกคะแนนแต่ละแมตช์<br>OCR ตรวจ Kill อัตโนมัติ + Hotkey สำรอง</div>
+      <div class="mt-16">
+        <span class="badge badge-cyan">1 คน / สาย</span>
+      </div>
+    </a>
+
+    <a href="leaderboard.html" class="nav-card nav-card-board animate-in animate-in-delay-2">
+      <span class="nav-card-icon">📊</span>
+      <div class="nav-card-title">Leaderboard</div>
+      <div class="nav-card-desc">ตารางคะแนน Real-time ทั้ง 6 สาย<br>เปิดบนโปรเจกเตอร์หรือจอกลาง</div>
+      <div class="mt-16">
+        <span class="badge badge-green">Live Updates</span>
+      </div>
+    </a>
+
+    <a href="finals.html" class="nav-card nav-card-finals animate-in animate-in-delay-3">
+      <span class="nav-card-icon">🏆</span>
+      <div class="nav-card-title">รอบชิงชนะเลิศ</div>
+      <div class="nav-card-desc">12 ทีมที่ผ่านรอบคัดเลือก (Top 2/สาย)<br>แข่ง 3 แมตช์ คะแนนสะสมรวม</div>
+      <div class="mt-16">
+        <span class="badge badge-gold">Finals</span>
+      </div>
+    </a>
+
+  </div>
+
+</div>
+
+<!-- Firebase warning -->
+<div id="firebase-warning" class="firebase-warning-banner hidden">
+  ⚠️ ยังไม่ได้ตั้งค่า Firebase — <a href="admin-setup.html" style="color:inherit;margin-left:8px;text-decoration:underline">ไปตั้งค่า →</a>
+</div>
+
+<script src="firebase-config.js?v=10.0"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="app.js?v=10.0"></script>
+<script>
+  // Check Firebase status
+  const ok = initFirebase();
+  const statusEl = document.getElementById('firebase-status-num');
+  if (ok) {
+    statusEl.textContent = '🟢';
+    statusEl.style.fontSize = '28px';
+  } else {
+    statusEl.textContent = '🔴';
+    statusEl.style.fontSize = '28px';
+    document.getElementById('firebase-warning').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
