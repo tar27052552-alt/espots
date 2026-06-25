@@ -202,9 +202,12 @@
 
       <!-- Kill Counters -->
       <div class="card animate-in animate-in-delay-2">
-        <div class="flex-between mb-12">
+        <div class="flex-between mb-12" style="flex-wrap: wrap; gap: 8px;">
           <div class="section-title" style="margin-bottom:0">💀 Kill Counter</div>
-          <button class="btn btn-sm btn-ghost" onclick="resetKills()">🔄 รีเซ็ต Kill</button>
+          <div class="flex gap-8" style="align-items: center; justify-content: flex-end; flex: 1; min-width: 250px;">
+            <input type="text" id="kill-search-input" placeholder="🔍 ค้นหาชื่อทีมหรือผู้เล่น..." oninput="filterKillGrid()" style="padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; width: 100%; max-width: 200px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--yellow)'" onblur="this.style.borderColor='var(--border)'" />
+            <button class="btn btn-sm btn-ghost" onclick="resetKills()" style="white-space: nowrap;">🔄 รีเซ็ต Kill</button>
+          </div>
         </div>
         <div class="kill-grid-2" id="kill-grid">
           <!-- Rendered by JS -->
@@ -488,6 +491,9 @@ async function checkAndPromoteFinalists() {
 
 // ===== Render Kill Grid =====
 function renderKillGrid() {
+  const searchInput = document.getElementById('kill-search-input');
+  if (searchInput) searchInput.value = '';
+  
   const color = getGroupColor(state.group);
   const grid = document.getElementById('kill-grid');
   grid.innerHTML = state.teams.map((t, i) => {
@@ -514,6 +520,28 @@ function renderKillGrid() {
       <div style="margin-top:8px">${playersHtml}</div>
     </div>`;
   }).join('');
+}
+
+function filterKillGrid() {
+  const query = document.getElementById('kill-search-input').value.toLowerCase().trim();
+  state.teams.forEach((t, i) => {
+    const card = document.getElementById(`kc-${i}`);
+    if (!card) return;
+    
+    if (!query) {
+      card.style.display = 'flex';
+      return;
+    }
+    
+    const matchesTeamName = t.name.toLowerCase().includes(query);
+    const matchesPlayerName = t.players.some(p => p.toLowerCase().includes(query));
+    
+    if (matchesTeamName || matchesPlayerName) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
 }
 
 function updateKillDisplay() {
