@@ -30,13 +30,7 @@
     .match-btn.completed { border-color: rgba(0,255,136,0.3); color: var(--green); }
     .match-btn.completed.active { background: #ffffff !important; color: #000000 !important; }
 
-    /* OCR Panel */
-    .ocr-panel { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-    .ocr-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .ocr-panel-body { padding: 20px; }
-    #ocr-preview { width: 100%; border-radius: var(--radius-sm); background: #000; display: block; cursor: crosshair; max-height: 220px; object-fit: contain; border: 1.5px solid var(--border); }
-    .ocr-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .ocr-status-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-top: 12px; font-size: 13px; border: 1px solid rgba(255,230,0,0.08); }
+
 
     /* Hotkey bar */
     .hk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
@@ -193,32 +187,6 @@
         </div>
       </div>
 
-      <!-- OCR Panel -->
-      <div class="ocr-panel animate-in animate-in-delay-1">
-        <div class="ocr-panel-header">
-          <div class="flex gap-8" style="align-items:center">
-            <div class="ocr-dot" id="ocr-dot"></div>
-            <span style="font-weight:700">🤖 OCR อัตโนมัติ</span>
-            <span id="ocr-status-text" class="text-muted" style="font-size:13px">ยังไม่ได้เริ่ม</span>
-          </div>
-          <div class="flex gap-8">
-            <button class="btn btn-sm btn-secondary" id="btn-ocr-start" onclick="startOCR()">📷 เริ่มจับหน้าจอ</button>
-            <button class="btn btn-sm btn-ghost hidden" id="btn-ocr-scan" onclick="toggleScan()">🔍 เริ่มสแกน</button>
-            <button class="btn btn-sm btn-danger hidden" id="btn-ocr-stop" onclick="stopOCR()">⏹ หยุด</button>
-          </div>
-        </div>
-        <div class="ocr-panel-body">
-          <canvas id="ocr-preview" height="200"></canvas>
-          <p class="text-muted mt-8" style="font-size:12px">💡 ลากบนภาพเพื่อกำหนด Kill Feed Zone (กรอบสีฟ้า) | ค่าเริ่มต้น: มุมบนขวา 45% × 25%</p>
-          <div class="ocr-status-row">
-            <span style="font-size:12px;color:var(--text-muted)">OCR อ่านได้ล่าสุด:</span>
-            <span id="ocr-last-text" style="font-size:12px;font-family:monospace;color:var(--text-secondary);flex:1">—</span>
-          </div>
-          <div class="ocr-log mt-8" id="ocr-log">
-            <div class="ocr-log-entry">[ OCR Log เริ่มต้น... ]</div>
-          </div>
-        </div>
-      </div>
 
       <!-- Hotkey Bar -->
       <div class="card animate-in animate-in-delay-2">
@@ -253,8 +221,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="app.js?v=10.1"></script>
-<script src="https://unpkg.com/tesseract.js@v5.0.3/dist/tesseract.min.js"></script>
-<script src="ocr.js?v=10.1"></script>
+
 <script>
 // ===== State =====
 let state = {
@@ -265,7 +232,7 @@ let state = {
   status: 'pending',
   placements: { first: null, second: null, third: null }
 };
-let ocrTracker = null;
+
 let hotkeyMgr = new HotkeyManager();
 let timerInterval = null;
 let matchStartTime = null;
@@ -608,72 +575,7 @@ function startTimer() {
 
 function stopTimer() { clearInterval(timerInterval); }
 
-// ===== OCR =====
-let ocrScanning = false;
 
-async function startOCR() {
-  if (!ocrTracker) {
-    ocrTracker = new OCRKillTracker();
-    ocrTracker.onKill = (tIdx, pIdx, name) => { recordKill(tIdx, pIdx, 'OCR'); };
-    ocrTracker.onOCRResult = (text) => {
-      document.getElementById('ocr-last-text').textContent = text.slice(0, 80) || '—';
-    };
-    ocrTracker.onLog = (msg, type) => {
-      const log = document.getElementById('ocr-log');
-      const entry = document.createElement('div');
-      entry.className = `ocr-log-entry ${type}`;
-      entry.textContent = `[${new Date().toLocaleTimeString('th-TH')}] ${msg}`;
-      log.appendChild(entry);
-      log.scrollTop = log.scrollHeight;
-      // Trim
-      while (log.children.length > 50) log.removeChild(log.firstChild);
-    };
-    ocrTracker.onStatusChange = (s) => {
-      const dot = document.getElementById('ocr-dot');
-      const txt = document.getElementById('ocr-status-text');
-      if (s === 'running') { dot.className = 'ocr-dot active'; txt.textContent = 'กำลังทำงาน'; }
-      else if (s === 'error') { dot.className = 'ocr-dot error'; txt.textContent = 'ข้อผิดพลาด'; }
-      else { dot.className = 'ocr-dot'; txt.textContent = 'หยุดทำงาน'; }
-    };
-    ocrTracker.setTeams(state.teams);
-  }
-
-  const canvas = document.getElementById('ocr-preview');
-  const captured = await ocrTracker.startCapture(canvas);
-  if (!captured) return;
-
-  ocrTracker.enableZoneSelector(canvas);
-  document.getElementById('btn-ocr-start').classList.add('hidden');
-  document.getElementById('btn-ocr-scan').classList.remove('hidden');
-  document.getElementById('btn-ocr-stop').classList.remove('hidden');
-
-  // Init worker
-  await ocrTracker.initWorker();
-}
-
-async function toggleScan() {
-  if (!ocrTracker) return;
-  if (ocrScanning) {
-    ocrTracker.stopScanning();
-    ocrScanning = false;
-    document.getElementById('btn-ocr-scan').textContent = '🔍 เริ่มสแกน';
-    document.getElementById('btn-ocr-scan').className = 'btn btn-sm btn-secondary';
-  } else {
-    ocrTracker.startScanning();
-    ocrScanning = true;
-    document.getElementById('btn-ocr-scan').textContent = '⏸ หยุดสแกน';
-    document.getElementById('btn-ocr-scan').className = 'btn btn-sm btn-warning';
-  }
-}
-
-async function stopOCR() {
-  if (ocrTracker) { await ocrTracker.stop(); ocrTracker = null; ocrScanning = false; }
-  document.getElementById('btn-ocr-start').classList.remove('hidden');
-  document.getElementById('btn-ocr-scan').classList.add('hidden');
-  document.getElementById('btn-ocr-stop').classList.add('hidden');
-  document.getElementById('btn-ocr-scan').textContent = '🔍 เริ่มสแกน';
-  document.getElementById('btn-ocr-scan').className = 'btn btn-sm btn-secondary';
-}
 
 // ===== Boot =====
 init();
