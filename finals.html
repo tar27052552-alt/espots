@@ -246,6 +246,16 @@ function init() {
     }, 100);
   }
 
+  // Parse view from URL (e.g. ?view=MVP or ?v=MVP)
+  const viewParam = urlParams.get('view') || urlParams.get('v');
+  if (viewParam && ['TEAMS', 'MVP'].includes(viewParam.toUpperCase())) {
+    fState.currentView = viewParam.toUpperCase();
+    setTimeout(() => {
+      document.getElementById('f-tab-teams').classList.toggle('active', fState.currentView === 'TEAMS');
+      document.getElementById('f-tab-mvp').classList.toggle('active', fState.currentView === 'MVP');
+    }, 100);
+  }
+
   if (!db) {
     document.getElementById('finals-lb-body').innerHTML =
       `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่ได้ตั้งค่า Firebase — <a href="admin-setup.html" style="color:var(--cyan)">ตั้งค่า</a></td></tr>`;
