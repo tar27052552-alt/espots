@@ -237,10 +237,20 @@ function getCardStyle(count) {
 // ===== Init =====
 function init() {
   initFirebase();
+
+  // Parse custom groups to show (e.g. ?groups=A,B)
+  const urlParams = new URLSearchParams(window.location.search);
+  const groupsParam = urlParams.get('groups');
+  if (groupsParam) {
+    const parsedGroups = groupsParam.toUpperCase().split(',').map(g => g.trim()).filter(g => GROUPS.includes(g));
+    if (parsedGroups.length > 0) {
+      activeGroups = parsedGroups;
+    }
+  }
+
   renderGroupFilterCheckboxes();
 
   // Check URL parameter for auto presentation mode (useful for OBS overlays)
-  const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('presentation') || urlParams.has('obs')) {
     document.body.classList.add('presentation-mode');
   }
