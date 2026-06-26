@@ -583,11 +583,11 @@ function renderFinalsLB(data) {
       ${rows || '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}`;
   } else {
     if (headerTitle) headerTitle.textContent = '🏆 ตารางคะแนนรอบชิง';
-    if (headerSub) headerSub.textContent = 'คะแนนรวม = รอบคัดเลือก + รอบชิงชนะเลิศ (คลิกดูชื่อรายคน)';
+    if (headerSub) headerSub.textContent = 'คะแนนรอบชิงชนะเลิศ (คลิกดูชื่อรายคน)';
     
     const tableHeader = document.querySelector('.finals-table thead');
     tableHeader.innerHTML = `<tr>
-      <th>#</th><th>ทีม (คลิกดูรายคน)</th><th>คัดเลือก</th><th>รอบชิง</th><th>รวมทั้งหมด</th>
+      <th>#</th><th>ทีม (คลิกดูรายคน)</th><th>คะแนนอันดับ</th><th>คะแนน Kill</th><th>คะแนนรวม</th>
     </tr>`;
 
     // Calculate total scores
@@ -616,7 +616,7 @@ function renderFinalsLB(data) {
         ...f,
         finalsScore: finalsPlacement + finalsKills,
         finalsKills, finalsPlacement, wins,
-        grandTotal: (f.qualScore || 0) + finalsPlacement + finalsKills
+        grandTotal: finalsPlacement + finalsKills
       };
     }).sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.finalsPlacement - a.finalsPlacement || b.finalsKills - a.finalsKills);
 
@@ -647,15 +647,17 @@ function renderFinalsLB(data) {
             <div>
               <div class="f-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(f.name)} ${getFinalsPlacementIcons(f.key)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></div>
               <div class="f-score-breakdown">
-                <span>คัดเลือก: ${f.qualScore || 0}</span>
+                <span>ชนะ: ${f.wins} ครั้ง</span>
                 <span>·</span>
-                <span>ชิง: ${f.finalsPlacement}pl + ${f.finalsKills}kill</span>
+                <span>อันดับ: ${f.finalsPlacement} คะแนน</span>
+                <span>·</span>
+                <span>Kill: ${f.finalsKills} คะแนน</span>
               </div>
             </div>
           </div>
         </td>
-        <td><span style="color:#000000;font-weight:700">${f.qualScore || 0}</span></td>
-        <td><span style="color:#e65100;font-weight:700">${f.finalsScore}</span></td>
+        <td><span style="color:#000000;font-weight:700">${f.finalsPlacement}</span></td>
+        <td><span style="color:#e65100;font-weight:700">${f.finalsKills}</span></td>
         <td>
           <div class="f-grand">${f.grandTotal}</div>
         </td>

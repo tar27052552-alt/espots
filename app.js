@@ -126,7 +126,7 @@ function calcFinalsScore(teamKey, qualScore, data) {
       }
     }
   }
-  return { placement, kills, wins, finalsTotal: placement + kills, grandTotal: qualScore + placement + kills };
+  return { placement, kills, wins, finalsTotal: placement + kills, grandTotal: placement + kills };
 }
 
 function getGroupLeaderboard(groupId, data) {
