@@ -143,8 +143,8 @@
 
     <!-- Champion Banner (shows when finals complete) -->
     <div id="champion-banner" class="champion-banner animate-in">
-      <span class="champ-crown">👑</span>
-      <div class="champ-title">🏆 แชมป์การแข่งขัน 🏆</div>
+      <span class="champ-crown" id="champ-crown">👑</span>
+      <div class="champ-title" id="champ-title">🏆 แชมป์การแข่งขัน 🏆</div>
       <div class="champ-name" id="champ-name">—</div>
       <div class="champ-score" id="champ-score"></div>
     </div>
@@ -481,6 +481,7 @@ function switchFinalsView(view) {
   document.getElementById('f-tab-mvp').classList.toggle('active', view === 'MVP');
   if (fState.lastData) {
     renderFinalsLB(fState.lastData);
+    checkChampion(fState.lastData);
   }
 }
 
@@ -491,6 +492,7 @@ function switchMatchFilter(filter) {
   });
   if (fState.lastData) {
     renderFinalsLB(fState.lastData);
+    checkChampion(fState.lastData);
   }
 }
 
@@ -664,25 +666,30 @@ function toggleRowDetails(id) {
 }
 
 function checkChampion(data) {
-  const finalists = Object.values(data?.finalists || {});
-  const m1 = data?.finals?.match1;
-  const m2 = data?.finals?.match2;
-  const m3 = data?.finals?.match3;
-  const allDone = m1?.status === 'completed' && m2?.status === 'completed' && m3?.status === 'completed';
-  if (!allDone || finalists.length === 0) { document.getElementById('champion-banner').classList.remove('visible'); return; }
+  if (!data) return;
+  const finalists = Object.values(data.finalists || {});
+  if (finalists.length === 0) {
+    document.getElementById('champion-banner').classList.remove('visible');
+    return;
+  }
 
-  const scored = finalists.map(f => {
-    let grand = 0;
-    let pl = 0, kl = 0, wins = 0;
-    [m1, m2, m3].forEach(m => {
-      if (!m) return;
-      if (m.placements?.first === f.key) {
-        pl += 5;
-        wins++;
-      }
-      else if (m.placements?.second === f.key) pl += 3;
-      else if (m.placements?.third === f.key) pl += 2;
-      const teamKillsObj = m.kills?.[f.key];
+  const m1 = data.finals?.match1;
+  const m2 = data.finals?.match2;
+  const m3 = data.finals?.match3;
+
+  const mf = fState.currentMatchFilter || 'all';
+
+  if (mf !== 'all') {
+    // Show winner of the selected match
+    const matchNum = parseInt(mf);
+    const match = data.finals?.[`match${matchNum}`];
+    if (match?.status === 'completed' && match.placements?.first) {
+      const winnerKey = match.placements.first;
+      const winnerTeam = data.finalists?.[winnerKey] || {};
+      
+      // Calculate kills for this team in this match
+      let kl = 0;
+      const teamKillsObj = match.kills?.[winnerKey];
       if (teamKillsObj) {
         if (typeof teamKillsObj === 'object') {
           Object.values(teamKillsObj).forEach(k => { kl += (k || 0); });
@@ -690,15 +697,64 @@ function checkChampion(data) {
           kl += (teamKillsObj || 0);
         }
       }
-    });
-    grand += pl + kl;
-    return { ...f, grandTotal: grand, wins, placement: pl, kills: kl };
-  }).sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
 
-  if (scored[0]) {
-    document.getElementById('champ-name').textContent = scored[0].name;
-    document.getElementById('champ-score').textContent = `คะแนนรวม: ${scored[0].grandTotal} คะแนน (สาย ${scored[0].group})`;
-    document.getElementById('champion-banner').classList.add('visible');
+      document.getElementById('champ-crown').textContent = '🥇';
+      document.getElementById('champ-title').textContent = `🏆 ผู้ชนะแมตช์ ${matchNum} 🏆`;
+      document.getElementById('champ-name').textContent = winnerTeam.name || '—';
+      document.getElementById('champ-score').textContent = `ชนะเลิศอันดับ 1 ในแมตช์นี้ (5 คะแนน placement + ${kl} Kills)`;
+      document.getElementById('champion-banner').classList.add('visible');
+    } else {
+      document.getElementById('champion-banner').classList.remove('visible');
+    }
+  } else {
+    // mf === 'all'
+    const completedMatches = [m1, m2, m3].filter(m => m?.status === 'completed');
+    if (completedMatches.length === 0) {
+      document.getElementById('champion-banner').classList.remove('visible');
+      return;
+    }
+
+    // Calculate leaderboard scores
+    const scored = finalists.map(f => {
+      let grand = 0;
+      let pl = 0, kl = 0, wins = 0;
+      [m1, m2, m3].forEach(m => {
+        if (!m) return;
+        if (m.placements?.first === f.key) {
+          pl += 5;
+          wins++;
+        }
+        else if (m.placements?.second === f.key) pl += 3;
+        else if (m.placements?.third === f.key) pl += 2;
+        const teamKillsObj = m.kills?.[f.key];
+        if (teamKillsObj) {
+          if (typeof teamKillsObj === 'object') {
+            Object.values(teamKillsObj).forEach(k => { kl += (k || 0); });
+          } else {
+            kl += (teamKillsObj || 0);
+          }
+        }
+      });
+      grand += pl + kl;
+      return { ...f, grandTotal: grand, wins, placement: pl, kills: kl };
+    }).sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
+
+    if (scored[0]) {
+      if (completedMatches.length === 3) {
+        document.getElementById('champ-crown').textContent = '👑';
+        document.getElementById('champ-title').textContent = '🏆 แชมป์การแข่งขัน 🏆';
+        document.getElementById('champ-name').textContent = scored[0].name;
+        document.getElementById('champ-score').textContent = `คะแนนรวมทั้งหมด: ${scored[0].grandTotal} คะแนน (สาย ${scored[0].group})`;
+      } else {
+        document.getElementById('champ-crown').textContent = '⚡';
+        document.getElementById('champ-title').textContent = `🏆 ผู้นำคะแนนรวมชั่วคราว (แข่งแล้ว ${completedMatches.length} แมตช์) 🏆`;
+        document.getElementById('champ-name').textContent = scored[0].name;
+        document.getElementById('champ-score').textContent = `คะแนนรวมสะสม: ${scored[0].grandTotal} คะแนน (สาย ${scored[0].group})`;
+      }
+      document.getElementById('champion-banner').classList.add('visible');
+    } else {
+      document.getElementById('champion-banner').classList.remove('visible');
+    }
   }
 }
 
