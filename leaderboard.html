@@ -389,7 +389,7 @@ function renderGroupCard(g, cardStyle = '') {
     <tr class="${isAdvance ? 'advance-row' : ''}" style="cursor:pointer" onclick="toggleRowDetails('${g}_${t.index}')">
       <td><span class="lb-rank ${rankClass}">${rank+1}</span></td>
       <td class="lb-team-name">
-        <span style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></span>
+        <span style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} ${getTeamPlacementIcons(g, t.index)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></span>
       </td>
       <td><span class="lb-kills">💀${t.kills}</span></td>
       <td><span class="lb-score">${t.total}</span></td>
@@ -454,7 +454,7 @@ function renderSingleGroup(g) {
     <tr class="${isAdvance ? 'advance-row' : ''}" style="cursor:pointer" onclick="toggleRowDetails('${g}_${t.index}')">
       <td><span class="single-rank ${rankClass}">${rank+1}</span></td>
       <td>
-        <div class="lb-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} <span class="expand-arrow" style="font-size:11px;color:#888888">▼</span></div>
+        <div class="lb-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} ${getTeamPlacementIcons(g, t.index)} <span class="expand-arrow" style="font-size:11px;color:#888888">▼</span></div>
         <div class="sub-score" style="font-size: 11px; color: #666666; display: flex; gap: 8px; margin-top: 2px;">
           <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 1: ${m1.pl}pl + ${m1.kl}kl</span>
           <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 2: ${m2.pl}pl + ${m2.kl}kl</span>
@@ -621,6 +621,23 @@ function buildTeamScores(g) {
   });
 
   return teams.sort((a, b) => b.total - a.total || b.kills - a.kills || b.placement - a.placement);
+}
+
+function getTeamPlacementIcons(g, teamIndex) {
+  const quals = liveData?.qualifier?.[g] || {};
+  let icons = '';
+  for (let m = 1; m <= 2; m++) {
+    const match = quals[`match${m}`];
+    if (!match) continue;
+    let medal = '';
+    if (match.placements?.first == teamIndex) medal = '🥇';
+    else if (match.placements?.second == teamIndex) medal = '🥈';
+    else if (match.placements?.third == teamIndex) medal = '🥉';
+    if (medal) {
+      icons += `<span title="แมตช์ ${m}" style="font-size:14px;cursor:default;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${medal}</span>`;
+    }
+  }
+  return icons;
 }
 
 function getMatchScore(g, matchNum, teamIndex) {

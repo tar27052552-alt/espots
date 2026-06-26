@@ -642,7 +642,7 @@ function renderFinalsLB(data) {
           <div style="display:flex;align-items:center;gap:8px">
             <span class="f-group-tag" style="background:${color}20;color:${color}">${f.group}</span>
             <div>
-              <div class="f-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(f.name)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></div>
+              <div class="f-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(f.name)} ${getFinalsPlacementIcons(f.key)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></div>
               <div class="f-score-breakdown">
                 <span>คัดเลือก: ${f.qualScore || 0}</span>
                 <span>·</span>
@@ -708,6 +708,23 @@ function checkChampion(data) {
     document.getElementById('champ-score').textContent = `คะแนนรวม: ${scored[0].grandTotal} คะแนน (สาย ${scored[0].group})`;
     document.getElementById('champion-banner').classList.add('visible');
   }
+}
+
+function getFinalsPlacementIcons(teamKey) {
+  const data = liveData || {};
+  let icons = '';
+  for (let m = 1; m <= 3; m++) {
+    const match = data?.finals?.[`match${m}`];
+    if (!match) continue;
+    let medal = '';
+    if (match.placements?.first === teamKey) medal = '🥇';
+    else if (match.placements?.second === teamKey) medal = '🥈';
+    else if (match.placements?.third === teamKey) medal = '🥉';
+    if (medal) {
+      icons += `<span title="แมตช์ ${m}" style="font-size:14px;cursor:default;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${medal}</span>`;
+    }
+  }
+  return icons;
 }
 
 function escHtml(str) {
