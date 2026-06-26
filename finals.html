@@ -598,7 +598,7 @@ function renderFinalsLB(data) {
         if (!match) continue;
         if (match.placements?.first === f.key) finalsPlacement += 5;
         else if (match.placements?.second === f.key) finalsPlacement += 3;
-        else if (match.placements?.third === f.key) finalsPlacement += 1;
+        else if (match.placements?.third === f.key) finalsPlacement += 2;
         
         const teamKillsObj = match.kills?.[f.key];
         if (teamKillsObj) {
@@ -690,7 +690,7 @@ function checkChampion(data) {
       if (!m) return;
       if (m.placements?.first === f.key) grand += 5;
       else if (m.placements?.second === f.key) grand += 3;
-      else if (m.placements?.third === f.key) grand += 1;
+      else if (m.placements?.third === f.key) grand += 2;
       const teamKillsObj = m.kills?.[f.key];
       if (teamKillsObj) {
         if (typeof teamKillsObj === 'object') {
