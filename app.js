@@ -7,7 +7,7 @@ const TEAMS_PER_GROUP = 12;
 const QUALIFIER_MATCHES = 2;
 const FINALS_MATCHES = 3;
 
-const PLACEMENT_POINTS = { first: 5, second: 3, third: 1 };
+const PLACEMENT_POINTS = { first: 5, second: 3, third: 2 };
 
 const GROUP_COLORS = {
   A: '#00f5ff', B: '#ff2d78', C: '#a855f7',
