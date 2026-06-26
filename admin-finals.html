@@ -162,13 +162,6 @@
         </div>
       </div>
       <div class="flex gap-8" style="align-items:center">
-        <!-- Match Filter Bar -->
-        <div class="match-filter-bar" id="global-match-filter" style="margin-right:8px">
-          <button class="mf-btn active" data-mf="all" onclick="switchMatchFilter('all')">📊 รวม</button>
-          <button class="mf-btn" data-mf="1" onclick="switchMatchFilter('1')">🎮 ม.1</button>
-          <button class="mf-btn" data-mf="2" onclick="switchMatchFilter('2')">🎮 ม.2</button>
-          <button class="mf-btn" data-mf="3" onclick="switchMatchFilter('3')">🎮 ม.3</button>
-        </div>
         <button class="btn btn-secondary btn-sm" onclick="togglePresentationMode()" style="font-family:'Orbitron','Kanit',sans-serif;font-weight:800;gap:6px">
           🖥️ เต็มจอ
         </button>
@@ -250,13 +243,12 @@ let fState = {
   finalists: [],  // [{ key, name, group, teamIndex, qualScore }]
   kills: {},
   status: 'pending',
-  placements: { first: null, second: null, third: null },
-  currentView: 'TEAMS',
-  currentMatchFilter: 'all',
-  lastData: null
+  placements: { first: null, second: null, third: null }
 };
 let fUnsub = null;
 let fHotkey = new HotkeyManager();
+let initializedGrid = false;
+
 
 // ===== Init =====
 function init() {
@@ -282,11 +274,23 @@ function init() {
   DB.listen('/', (data) => {
     const d = data || {};
     fState.dbSnapshot = d;
-    fState.finalists = Object.values(d.finalists || {}).sort((a, b) => b.qualScore - a.qualScore);
-    renderFinalsLB(d);
-    renderFinalsKillGrid();
+    
+    // Sort finalists stably by qualScore (descending), and break ties by key to ensure 100% stable ordering
+    const sortedFinalists = Object.values(d.finalists || {}).sort((a, b) => b.qualScore - a.qualScore || a.key.localeCompare(b.key));
+    
+    // Check if finalists actually changed (e.g. different keys or names)
+    const finalistsChanged = JSON.stringify(sortedFinalists.map(f => ({ key: f.key, name: f.name }))) !== 
+                             JSON.stringify(fState.finalists.map(f => ({ key: f.key, name: f.name })));
+                             
+    fState.finalists = sortedFinalists;
+    
+    if (finalistsChanged || !initializedGrid) {
+      renderFinalsKillGrid();
+      renderFinalsPlacementSelects();
+      initializedGrid = true;
+    }
+    
     updateFinalsKillDisplay();
-    renderFinalsPlacementSelects();
     checkChampion(d);
   });
 
@@ -489,203 +493,6 @@ function updateFinalsKillDisplay() {
   });
 }
 
-// ===== View Switcher for Finals =====
-function switchFinalsView(view) {
-  fState.currentView = view;
-  document.getElementById('f-tab-teams').classList.toggle('active', view === 'TEAMS');
-  document.getElementById('f-tab-mvp').classList.toggle('active', view === 'MVP');
-  if (fState.lastData) {
-    renderFinalsLB(fState.lastData);
-  }
-}
-
-function switchMatchFilter(filter) {
-  fState.currentMatchFilter = filter;
-  document.querySelectorAll('#global-match-filter .mf-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mf === filter);
-  });
-  if (fState.lastData) {
-    renderFinalsLB(fState.lastData);
-  }
-}
-
-// ===== Finals Leaderboard =====
-function renderFinalsLB(data) {
-  fState.lastData = data;
-  const finalists = Object.values(data?.finalists || {});
-  
-  const lbBody = document.getElementById('finals-lb-body');
-  if (!lbBody) {
-    const mf = fState.currentMatchFilter || 'all';
-    fState.finalists = getFinalsLeaderboard(data, mf);
-    return;
-  }
-  
-  if (finalists.length === 0) {
-    document.getElementById('finals-lb-body').innerHTML =
-      `<tr><td colspan="5" style="text-align:center;padding:60px;color:var(--text-muted)">
-        <div style="font-size:40px;margin-bottom:12px">⏳</div>
-        <div>รอทีมผ่านรอบคัดเลือก...<br>
-        <span style="font-size:12px">ทีม Top 2 ของแต่ละสายจะปรากฏที่นี่โดยอัตโนมัติ</span></div>
-      </td></tr>`;
-    return;
-  }
-
-  // Update header depending on the view
-  const headerTitle = document.querySelector('.finals-lb-header h2');
-  const headerSub = document.querySelector('.finals-lb-header p');
-  
-  if (fState.currentView === 'MVP') {
-    if (headerTitle) headerTitle.textContent = '🎖️ อันดับ MVP รอบชิง';
-    if (headerSub) headerSub.textContent = 'จัดอันดับผู้เล่นที่ทำ Kill สูงสุดในรอบชิงชนะเลิศ (คลิกแถบด้านบนเพื่อสลับกลับ)';
-    
-    const tableHeader = document.querySelector('.finals-table thead');
-    tableHeader.innerHTML = `<tr>
-      <th style="width:70px">อันดับ</th><th>ผู้เล่น</th><th>สังกัดทีม</th><th style="text-align:right">Kills รอบชิง</th>
-    </tr>`;
-    
-    const mvpList = getFinalsMVPLeaderboard(data, fState.currentMatchFilter);
-    const top1 = mvpList[0];
-    const top2 = mvpList[1];
-    const top3 = mvpList[2];
-
-    let podiumHtml = '';
-    if (mvpList.length > 0) {
-      podiumHtml = `
-      <div class="mvp-podium-container" style="display:flex;justify-content:center;align-items:flex-end;gap:12px;margin:20px auto 30px;max-width:100%;padding:16px 10px;background:rgba(255,230,0,0.03);border-radius:16px;border:1px solid rgba(255,230,0,0.1);box-shadow:inset 0 0 15px rgba(255,230,0,0.02)">
-        <!-- 2nd Place -->
-        ${top2 ? `
-        <div style="display:flex;flex-direction:column;align-items:center;width:30%;">
-          <div style="font-size:28px;margin-bottom:4px;animation:float 3s ease-in-out infinite">🥈</div>
-          <div style="font-size:12px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top2.name)}</div>
-          <div style="font-size:10px;color:#888888;margin-bottom:6px">${escHtml(top2.teamName)} (${top2.group})</div>
-          <div class="podium-bar" style="width:100%;height:60px;background:linear-gradient(180deg, #b0bec5, rgba(176,190,197,0.1));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:1.5px solid #b0bec5;border-bottom:none">
-            <span style="font-size:20px;font-family:'Orbitron',sans-serif">${top2.kills}</span>
-            <span style="font-size:8px">KILLS</span>
-          </div>
-        </div>` : ''}
-
-        <!-- 1st Place -->
-        ${top1 ? `
-        <div style="display:flex;flex-direction:column;align-items:center;width:35%;margin-top:-15px">
-          <div style="font-size:38px;margin-bottom:4px;animation:float 2.5s ease-in-out infinite">👑</div>
-          <div style="font-size:14px;font-weight:900;color:#ffe600;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top1.name)}</div>
-          <div style="font-size:11px;color:#ffffff;margin-bottom:6px">${escHtml(top1.teamName)} (${top1.group})</div>
-          <div class="podium-bar" style="width:100%;height:95px;background:linear-gradient(180deg, #ffe600, rgba(255,230,0,0.15));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:2px solid #ffe600;border-bottom:none;box-shadow: 0 0 15px rgba(255,230,0,0.25)">
-            <span style="font-size:26px;font-family:'Orbitron',sans-serif">${top1.kills}</span>
-            <span style="font-size:9px">KILLS</span>
-          </div>
-        </div>` : ''}
-
-        <!-- 3rd Place -->
-        ${top3 ? `
-        <div style="display:flex;flex-direction:column;align-items:center;width:30%;">
-          <div style="font-size:28px;margin-bottom:4px;animation:float 3.5s ease-in-out infinite">🥉</div>
-          <div style="font-size:12px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top3.name)}</div>
-          <div style="font-size:10px;color:#888888;margin-bottom:6px">${escHtml(top3.teamName)} (${top3.group})</div>
-          <div class="podium-bar" style="width:100%;height:45px;background:linear-gradient(180deg, #d7ccc8, rgba(215,204,200,0.1));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:1.5px solid #d7ccc8;border-bottom:none">
-            <span style="font-size:18px;font-family:'Orbitron',sans-serif">${top3.kills}</span>
-            <span style="font-size:8px">KILLS</span>
-          </div>
-        </div>` : ''}
-      </div>`;
-    }
-
-    const remainingPlayers = mvpList.slice(3);
-    const rows = remainingPlayers.map((p, index) => {
-      const rank = index + 4;
-      const color = getGroupColor(p.group);
-      return `<tr>
-        <td><span class="f-rank">${rank}</span></td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:9px;padding:2px 5px;border-radius:4px;background:${color}20;color:${color};font-weight:900">${p.group}</span>
-            <span class="lb-team-name">${escHtml(p.name)}</span>
-          </div>
-        </td>
-        <td><span style="color:#000000;font-weight:700;font-size:12px">${escHtml(p.teamName)}</span></td>
-        <td style="text-align:right"><span class="f-grand" style="font-size:18px;color:#e65100">💀 ${p.kills}</span></td>
-      </tr>`;
-    }).join('');
-    
-    document.getElementById('finals-lb-body').innerHTML = `
-      <tr><td colspan="4" style="background:transparent !important;padding:0 !important;border:none !important">${podiumHtml}</td></tr>
-      ${rows || '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}`;
-  } else {
-    const mf = fState.currentMatchFilter || 'all';
-    const filterLabel = mf === 'all' ? 'คะแนนรวมรอบชิง' : `คะแนนรอบชิง — แมตช์ ${mf}`;
-    if (headerTitle) headerTitle.textContent = '🏆 ' + filterLabel;
-    if (headerSub) headerSub.textContent = 'คะแนนรอบชิงชนะเลิศ (คลิกดูชื่อรายคน)';
-    
-    const tableHeader = document.querySelector('.finals-table thead');
-    tableHeader.innerHTML = `<tr>
-      <th>#</th><th>ทีม (คลิกดูรายคน)</th><th>คะแนนอันดับ</th><th>คะแนน Kill</th><th>คะแนนรวม</th>
-    </tr>`;
-
-    const scored = getFinalsLeaderboard(data, mf);
-
-    const rows = scored.map((f, rank) => {
-      const color = getGroupColor(f.group);
-      const rankClass = rank === 0 ? 'f-rank-1' : rank === 1 ? 'f-rank-2' : rank === 2 ? 'f-rank-3' : '';
-      const isChamp = rank === 0 && mf === 'all';
-      
-      // โหลดรายชื่อผู้เล่นเพื่อทำแถบย่อย
-      const players = getFinalistPlayers(f);
-      const matchList = mf === 'all' ? [1, 2, 3] : [parseInt(mf)];
-      const playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;padding:8px">` + players.map((p, pIdx) => {
-        let pKills = 0;
-        for (const m of matchList) {
-          pKills += (data?.finals?.[`match${m}`]?.kills?.[f.key]?.[pIdx] || 0);
-        }
-        return `
-          <div class="player-capsule-detail" style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;border:2px solid #ffe600;border-radius:100px;padding:6px 14px;color:#000000;box-shadow:0 3px 6px rgba(0,0,0,0.15)">
-            <span style="font-weight:700;font-size:12px">${escHtml(p)}</span>
-            <span style="background:#ffe600;color:#000000;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:800;font-family:'Orbitron',sans-serif">💀 ${pKills}</span>
-          </div>`;
-      }).join('') + `</div>`;
-
-      return `<tr class="${isChamp ? 'champion-row' : ''}" style="cursor:pointer" onclick="toggleRowDetails('${f.key}')">
-        <td><span class="f-rank ${rankClass}">${rank+1}</span></td>
-        <td>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="f-group-tag" style="background:${color}20;color:${color}">${f.group}</span>
-            <div>
-              <div class="f-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(f.name)} ${getFinalsPlacementIcons(f.key, mf)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></div>
-              <div class="f-score-breakdown">
-                <span>ชนะ: ${f.wins} ครั้ง</span>
-                <span>·</span>
-                <span>อันดับ: ${f.placement} คะแนน</span>
-                <span>·</span>
-                <span>Kill: ${f.kills} คะแนน</span>
-              </div>
-            </div>
-          </div>
-        </td>
-        <td><span style="color:#000000;font-weight:700">${f.placement}</span></td>
-        <td><span style="color:#e65100;font-weight:700">${f.kills}</span></td>
-        <td>
-          <div class="f-grand">${f.grandTotal}</div>
-        </td>
-      </tr>
-      <tr id="details-${f.key}" style="display:none;">
-        <td colspan="5" style="padding:8px 12px 14px 12px !important">
-          <div style="border-left:3px solid ${color};padding-left:12px">${playersHtml}</div>
-        </td>
-      </tr>`;
-    }).join('');
-
-    document.getElementById('finals-lb-body').innerHTML = rows;
-    fState.finalists = scored;
-  }
-}
-
-function toggleRowDetails(id) {
-  const el = document.getElementById(`details-${id}`);
-  if (el) {
-    el.style.display = el.style.display === 'none' ? 'table-row' : 'none';
-  }
-}
-
 function checkChampion(data) {
   const finalists = Object.values(data?.finalists || {});
   const m1 = data?.finals?.match1;
@@ -725,23 +532,6 @@ function checkChampion(data) {
   }
 }
 
-function getFinalsPlacementIcons(teamKey, matchFilter = 'all') {
-  const data = fState.dbSnapshot || {};
-  let icons = '';
-  const matchList = matchFilter === 'all' ? [1, 2, 3] : [parseInt(matchFilter)];
-  for (const m of matchList) {
-    const match = data?.finals?.[`match${m}`];
-    if (!match) continue;
-    let medal = '';
-    if (match.placements?.first === teamKey) medal = '🥇';
-    else if (match.placements?.second === teamKey) medal = '🥈';
-    else if (match.placements?.third === teamKey) medal = '🥉';
-    if (medal) {
-      icons += `<span title="แมตช์ ${m}" style="font-size:14px;cursor:default;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">${medal}</span>`;
-    }
-  }
-  return icons;
-}
 
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
