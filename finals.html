@@ -592,11 +592,14 @@ function renderFinalsLB(data) {
 
     // Calculate total scores
     const scored = finalists.map(f => {
-      let finalsKills = 0, finalsPlacement = 0;
+      let finalsKills = 0, finalsPlacement = 0, wins = 0;
       for (let m = 1; m <= 3; m++) {
         const match = data?.finals?.[`match${m}`];
         if (!match) continue;
-        if (match.placements?.first === f.key) finalsPlacement += 5;
+        if (match.placements?.first === f.key) {
+          finalsPlacement += 5;
+          wins++;
+        }
         else if (match.placements?.second === f.key) finalsPlacement += 3;
         else if (match.placements?.third === f.key) finalsPlacement += 2;
         
@@ -612,10 +615,10 @@ function renderFinalsLB(data) {
       return {
         ...f,
         finalsScore: finalsPlacement + finalsKills,
-        finalsKills, finalsPlacement,
+        finalsKills, finalsPlacement, wins,
         grandTotal: (f.qualScore || 0) + finalsPlacement + finalsKills
       };
-    }).sort((a, b) => b.grandTotal - a.grandTotal || b.finalsKills - a.finalsKills);
+    }).sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.finalsPlacement - a.finalsPlacement || b.finalsKills - a.finalsKills);
 
     const rows = scored.map((f, rank) => {
       const color = getGroupColor(f.group);
@@ -686,22 +689,27 @@ function checkChampion(data) {
 
   const scored = finalists.map(f => {
     let grand = f.qualScore || 0;
+    let pl = 0, kl = 0, wins = 0;
     [m1, m2, m3].forEach(m => {
       if (!m) return;
-      if (m.placements?.first === f.key) grand += 5;
-      else if (m.placements?.second === f.key) grand += 3;
-      else if (m.placements?.third === f.key) grand += 2;
+      if (m.placements?.first === f.key) {
+        pl += 5;
+        wins++;
+      }
+      else if (m.placements?.second === f.key) pl += 3;
+      else if (m.placements?.third === f.key) pl += 2;
       const teamKillsObj = m.kills?.[f.key];
       if (teamKillsObj) {
         if (typeof teamKillsObj === 'object') {
-          Object.values(teamKillsObj).forEach(k => { grand += (k || 0); });
+          Object.values(teamKillsObj).forEach(k => { kl += (k || 0); });
         } else {
-          grand += (teamKillsObj || 0);
+          kl += (teamKillsObj || 0);
         }
       }
     });
-    return { ...f, grandTotal: grand };
-  }).sort((a, b) => b.grandTotal - a.grandTotal);
+    grand += pl + kl;
+    return { ...f, grandTotal: grand, wins, placement: pl, kills: kl };
+  }).sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
 
   if (scored[0]) {
     document.getElementById('champ-name').textContent = scored[0].name;

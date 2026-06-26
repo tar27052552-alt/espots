@@ -82,11 +82,14 @@ const DB = {
 
 // ===== Score Calculation =====
 function calcQualifierScore(groupId, teamIndex, data) {
-  let placement = 0, kills = 0;
+  let placement = 0, kills = 0, wins = 0;
   for (let m = 1; m <= QUALIFIER_MATCHES; m++) {
     const match = data?.qualifier?.[groupId]?.[`match${m}`];
     if (!match) continue;
-    if (match.placements?.first == teamIndex) placement += PLACEMENT_POINTS.first;
+    if (match.placements?.first == teamIndex) {
+      placement += PLACEMENT_POINTS.first;
+      wins++;
+    }
     else if (match.placements?.second == teamIndex) placement += PLACEMENT_POINTS.second;
     else if (match.placements?.third == teamIndex) placement += PLACEMENT_POINTS.third;
     
@@ -99,15 +102,18 @@ function calcQualifierScore(groupId, teamIndex, data) {
       }
     }
   }
-  return { placement, kills, total: placement + kills };
+  return { placement, kills, wins, total: placement + kills };
 }
 
 function calcFinalsScore(teamKey, qualScore, data) {
-  let placement = 0, kills = 0;
+  let placement = 0, kills = 0, wins = 0;
   for (let m = 1; m <= FINALS_MATCHES; m++) {
     const match = data?.finals?.[`match${m}`];
     if (!match) continue;
-    if (match.placements?.first === teamKey) placement += PLACEMENT_POINTS.first;
+    if (match.placements?.first === teamKey) {
+      placement += PLACEMENT_POINTS.first;
+      wins++;
+    }
     else if (match.placements?.second === teamKey) placement += PLACEMENT_POINTS.second;
     else if (match.placements?.third === teamKey) placement += PLACEMENT_POINTS.third;
     
@@ -120,7 +126,7 @@ function calcFinalsScore(teamKey, qualScore, data) {
       }
     }
   }
-  return { placement, kills, finalsTotal: placement + kills, grandTotal: qualScore + placement + kills };
+  return { placement, kills, wins, finalsTotal: placement + kills, grandTotal: qualScore + placement + kills };
 }
 
 function getGroupLeaderboard(groupId, data) {
@@ -130,7 +136,7 @@ function getGroupLeaderboard(groupId, data) {
       const score = calcQualifierScore(groupId, parseInt(idx), data);
       return { ...team, index: parseInt(idx), ...score };
     })
-    .sort((a, b) => b.total - a.total || b.kills - a.kills);
+    .sort((a, b) => b.total - a.total || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
 }
 
 function getFinalsLeaderboard(data) {
@@ -141,7 +147,7 @@ function getFinalsLeaderboard(data) {
       const finals = calcFinalsScore(key, qualScore, data);
       return { ...team, key, qualScore, ...finals };
     })
-    .sort((a, b) => b.grandTotal - a.grandTotal || b.finalsTotal - a.finalsTotal);
+    .sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
 }
 
 // ===== MVP Leaderboards =====

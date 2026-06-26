@@ -687,11 +687,14 @@ function buildTeamScores(g, matchFilter) {
 
   const teams = Array.from({ length: getTeamsInGroup(g) }, (_, i) => {
     const name = teamsData[i]?.name || getDefaultTeamName(g, i);
-    let pl = 0, kills = 0;
+    let pl = 0, kills = 0, wins = 0;
     for (const m of matchList) {
       const match = quals[`match${m}`];
       if (!match) continue;
-      if (match.placements?.first == i) pl += 5;
+      if (match.placements?.first == i) {
+        pl += 5;
+        wins++;
+      }
       else if (match.placements?.second == i) pl += 3;
       else if (match.placements?.third == i) pl += 2;
       
@@ -704,10 +707,10 @@ function buildTeamScores(g, matchFilter) {
         }
       }
     }
-    return { index: i, name, placement: pl, kills, total: pl + kills };
+    return { index: i, name, placement: pl, kills, total: pl + kills, wins };
   });
 
-  return teams.sort((a, b) => b.total - a.total || b.kills - a.kills || b.placement - a.placement);
+  return teams.sort((a, b) => b.total - a.total || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
 }
 
 function getTeamPlacementIcons(g, teamIndex) {
