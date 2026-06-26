@@ -522,7 +522,7 @@ function renderFinalsLB(data) {
       <th style="width:70px">อันดับ</th><th>ผู้เล่น</th><th style="text-align:right">Kills รอบชิง</th>
     </tr>`;
     
-    const mvpList = getFinalsMVPLeaderboard(data, fState.currentMatchFilter);
+    const mvpList = getFinalsMVPLeaderboard(data, fState.currentMatchFilter).filter(p => p.kills > 0);
     const top1 = mvpList[0];
     const top2 = mvpList[1];
     const top3 = mvpList[2];
@@ -587,7 +587,7 @@ function renderFinalsLB(data) {
     
     document.getElementById('finals-lb-body').innerHTML = `
       <tr style="background:transparent !important;border:none !important;box-shadow:none !important;transform:none !important;pointer-events:none;"><td colspan="3" style="background:transparent !important;padding:0 !important;border:none !important">${podiumHtml}</td></tr>
-      ${rows || '<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}`;
+      ${rows || (mvpList.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>' : '')}`;
   } else {
     const mf = fState.currentMatchFilter || 'all';
     const filterLabel = mf === 'all' ? 'คะแนนรวมรอบชิง' : `คะแนนรอบชิง — แมตช์ ${mf}`;
