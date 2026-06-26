@@ -509,7 +509,7 @@ function renderFinalsLB(data) {
     
     const tableHeader = document.querySelector('.finals-table thead');
     tableHeader.innerHTML = `<tr>
-      <th style="width:70px">อันดับ</th><th>ผู้เล่น</th><th>สังกัดทีม</th><th style="text-align:right">Kills รอบชิง</th>
+      <th style="width:70px">อันดับ</th><th>ผู้เล่น</th><th style="text-align:right">Kills รอบชิง</th>
     </tr>`;
     
     const mvpList = getFinalsMVPLeaderboard(data, fState.currentMatchFilter);
@@ -526,7 +526,7 @@ function renderFinalsLB(data) {
         <div style="display:flex;flex-direction:column;align-items:center;width:30%;">
           <div style="font-size:28px;margin-bottom:4px;animation:float 3s ease-in-out infinite">🥈</div>
           <div style="font-size:12px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top2.name)}</div>
-          <div style="font-size:10px;color:#888888;margin-bottom:6px">${escHtml(top2.teamName)} (${top2.group})</div>
+          <div style="font-size:10px;color:#888888;margin-bottom:6px">สาย ${top2.group}</div>
           <div class="podium-bar" style="width:100%;height:60px;background:linear-gradient(180deg, #b0bec5, rgba(176,190,197,0.1));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:1.5px solid #b0bec5;border-bottom:none">
             <span style="font-size:20px;font-family:'Orbitron',sans-serif">${top2.kills}</span>
             <span style="font-size:8px">KILLS</span>
@@ -538,7 +538,7 @@ function renderFinalsLB(data) {
         <div style="display:flex;flex-direction:column;align-items:center;width:35%;margin-top:-15px">
           <div style="font-size:38px;margin-bottom:4px;animation:float 2.5s ease-in-out infinite">👑</div>
           <div style="font-size:14px;font-weight:900;color:#ffe600;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top1.name)}</div>
-          <div style="font-size:11px;color:#ffffff;margin-bottom:6px">${escHtml(top1.teamName)} (${top1.group})</div>
+          <div style="font-size:11px;color:#ffffff;margin-bottom:6px">สาย ${top1.group}</div>
           <div class="podium-bar" style="width:100%;height:95px;background:linear-gradient(180deg, #ffe600, rgba(255,230,0,0.15));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:2px solid #ffe600;border-bottom:none;box-shadow: 0 0 15px rgba(255,230,0,0.25)">
             <span style="font-size:26px;font-family:'Orbitron',sans-serif">${top1.kills}</span>
             <span style="font-size:9px">KILLS</span>
@@ -550,7 +550,7 @@ function renderFinalsLB(data) {
         <div style="display:flex;flex-direction:column;align-items:center;width:30%;">
           <div style="font-size:28px;margin-bottom:4px;animation:float 3.5s ease-in-out infinite">🥉</div>
           <div style="font-size:12px;font-weight:800;color:#ffffff;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis">${escHtml(top3.name)}</div>
-          <div style="font-size:10px;color:#888888;margin-bottom:6px">${escHtml(top3.teamName)} (${top3.group})</div>
+          <div style="font-size:10px;color:#888888;margin-bottom:6px">สาย ${top3.group}</div>
           <div class="podium-bar" style="width:100%;height:45px;background:linear-gradient(180deg, #d7ccc8, rgba(215,204,200,0.1));border-radius:8px 8px 0 0;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#000000;font-weight:900;border:1.5px solid #d7ccc8;border-bottom:none">
             <span style="font-size:18px;font-family:'Orbitron',sans-serif">${top3.kills}</span>
             <span style="font-size:8px">KILLS</span>
@@ -567,18 +567,17 @@ function renderFinalsLB(data) {
         <td><span class="f-rank">${rank}</span></td>
         <td>
           <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:9px;padding:2px 5px;border-radius:4px;background:${color}20;color:${color};font-weight:900">${p.group}</span>
+            <span style="font-size:9px;padding:2px 5px;border-radius:4px;background:${color}20;color:${color};font-weight:900">สาย ${p.group}</span>
             <span class="lb-team-name">${escHtml(p.name)}</span>
           </div>
         </td>
-        <td><span style="color:#000000;font-weight:700;font-size:12px">${escHtml(p.teamName)}</span></td>
         <td style="text-align:right"><span class="f-grand" style="font-size:18px;color:#e65100">💀 ${p.kills}</span></td>
       </tr>`;
     }).join('');
     
     document.getElementById('finals-lb-body').innerHTML = `
-      <tr><td colspan="4" style="background:transparent !important;padding:0 !important;border:none !important">${podiumHtml}</td></tr>
-      ${rows || '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}`;
+      <tr style="background:transparent !important;border:none !important;box-shadow:none !important;transform:none !important;pointer-events:none;"><td colspan="3" style="background:transparent !important;padding:0 !important;border:none !important">${podiumHtml}</td></tr>
+      ${rows || '<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}`;
   } else {
     const mf = fState.currentMatchFilter || 'all';
     const filterLabel = mf === 'all' ? 'คะแนนรวมรอบชิง' : `คะแนนรอบชิง — แมตช์ ${mf}`;
