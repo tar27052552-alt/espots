@@ -251,6 +251,12 @@ let fHotkey = new HotkeyManager();
 function init() {
   initFirebase();
 
+  // Check URL parameter for auto presentation mode (useful for OBS overlays)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('presentation') || urlParams.has('obs')) {
+    document.body.classList.add('presentation-mode');
+  }
+
   if (!db) {
     document.getElementById('finals-lb-body').innerHTML =
       `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่ได้ตั้งค่า Firebase — <a href="admin-setup.html" style="color:var(--cyan)">ตั้งค่า</a></td></tr>`;

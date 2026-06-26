@@ -239,6 +239,12 @@ function init() {
   initFirebase();
   renderGroupFilterCheckboxes();
 
+  // Check URL parameter for auto presentation mode (useful for OBS overlays)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('presentation') || urlParams.has('obs')) {
+    document.body.classList.add('presentation-mode');
+  }
+
   if (!db) {
     document.getElementById('lb-content').innerHTML = `
       <div class="card text-center" style="padding:60px">
