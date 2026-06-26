@@ -1874,5 +1874,51 @@ body.presentation-mode .finals-lb {
   height: 100% !important;
 }
 
+/* Specific overrides for Finals page presentation mode to fit all 12 teams completely */
+body.presentation-mode.finals-page .finals-lb .finals-table {
+  border-collapse: separate !important;
+  border-spacing: 0 6px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb .finals-table tbody tr:not([id^="details-"]) {
+  height: 38px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb .finals-table tbody tr:not([id^="details-"]) td {
+  padding: 4px 12px !important;
+  font-size: 13px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb .f-rank {
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 10px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb .f-team-name {
+  font-size: 13px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb .f-grand {
+  font-size: 15px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb-header {
+  padding: 10px 16px !important;
+}
+
+body.presentation-mode.finals-page .header-logo-school {
+  height: 50px !important;
+}
+
+body.presentation-mode.finals-page .header-logo-game {
+  height: 32px !important;
+}
+
+body.presentation-mode.finals-page .lb-title-block h1 {
+  font-size: 24px !important;
+}
+
+
 
 
