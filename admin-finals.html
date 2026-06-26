@@ -36,7 +36,7 @@
     .champ-score { font-size: 18px; color: var(--text-secondary); margin-top: 8px; }
 
     /* Layout */
-    .finals-layout { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
+    .finals-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
 
     /* Finals Leaderboard */
     .finals-lb { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
@@ -73,7 +73,7 @@
     .finals-match-btn.completed { border-color: rgba(0,255,136,0.3); color: var(--green); }
 
     /* Kill cards for finals */
-    .f-kill-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .f-kill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
     .f-kc { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; }
     .f-kc.has-kills { border-color: rgba(255, 230, 0, 0.3); }
     .f-kc-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
@@ -118,7 +118,7 @@
 
     @media (max-width: 900px) {
       .finals-layout { grid-template-columns: 1fr; }
-      .f-kill-grid { grid-template-columns: repeat(3, 1fr); }
+      .f-kill-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
     }
   </style>
 </head>
@@ -179,32 +179,8 @@
 
     <div class="finals-layout">
 
-      <!-- ===== LEADERBOARD ===== -->
-      <div class="finals-lb animate-in animate-in-delay-1">
-        <div class="tabs mb-16" style="margin: 14px 20px 0 20px">
-          <button class="tab-btn active" id="f-tab-teams" onclick="switchFinalsView('TEAMS')">🏆 อันดับทีมรอบชิง</button>
-          <button class="tab-btn" id="f-tab-mvp" onclick="switchFinalsView('MVP')">🎖️ อันดับ MVP รอบชิง</button>
-        </div>
-        <div class="finals-lb-header">
-          <div>
-            <h2 style="font-size:18px;font-weight:800">🏆 ตารางคะแนนรอบชิง</h2>
-            <p class="text-muted" style="font-size:13px">คะแนนสะสมรอบชิงชนะเลิศ</p>
-          </div>
-          <div class="live-indicator" id="lb-live">LIVE</div>
-        </div>
-        <table class="finals-table">
-          <thead><tr>
-            <th>#</th><th>ทีม (คลิกดูรายคน)</th><th>คะแนนอันดับ</th><th>คะแนน Kill</th><th>คะแนนรวม</th>
-          </tr></thead>
-          <tbody id="finals-lb-body">
-            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">กำลังโหลด...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ===== ADMIN SIDEBAR ===== -->
-      <div class="admin-sidebar animate-in animate-in-delay-2">
-
+      <!-- ===== LEFT COLUMN (ADMIN CONTROLS) ===== -->
+      <div class="admin-sidebar animate-in" style="display:flex;flex-direction:column;gap:20px">
         <!-- Match Selector -->
         <div class="card">
           <div class="section-title">⚔️ รอบชิง — เลือกแมตช์</div>
@@ -222,17 +198,8 @@
         <!-- Hotkeys hint -->
         <div class="card">
           <div class="section-title">⌨️ Hotkey (1–9,0,-,=)</div>
-          <p class="text-muted" style="font-size:12px">กดตัวเลขบนคีย์บอร์ดเพื่อ +Kill ให้ทีม<br>ตามลำดับในรายการด้านซ้าย</p>
+          <p class="text-muted" style="font-size:12px">กดตัวเลขบนคีย์บอร์ดเพื่อ +Kill ให้ทีม<br>ตามลำดับในรายการด้านขวา</p>
           <div id="f-hk-status" class="mt-8 badge badge-purple">ปิดอยู่</div>
-        </div>
-
-        <!-- Kill Grid -->
-        <div class="card">
-          <div class="flex-between mb-10">
-            <div class="section-title" style="margin-bottom:0">💀 Kill Counter</div>
-            <button class="btn btn-sm btn-ghost" onclick="resetFinalsKills()">🔄</button>
-          </div>
-          <div class="f-kill-grid" id="finals-kill-grid"></div>
         </div>
 
         <!-- Placement -->
@@ -252,8 +219,20 @@
           </div>
           <button class="btn btn-primary w-full mt-8" onclick="saveFinalsPlacement()">💾 บันทึกอันดับ</button>
         </div>
-
       </div>
+
+      <!-- ===== RIGHT COLUMN (KILL COUNTER GRID) ===== -->
+      <div class="card animate-in animate-in-delay-1" style="flex:1">
+        <div class="flex-between mb-12">
+          <div>
+            <h2 style="font-size:20px;font-weight:900;font-family:'Outfit','Kanit',sans-serif;margin:0"><span class="gradient-text">💀 บันทึกคะแนน Kill (รอบชิง)</span></h2>
+            <p class="text-muted" style="font-size:12px;margin-top:4px">กดปุ่ม + หรือ - เพื่อปรับจำนวน Kill หรือกด Hotkeys ตามรายชื่อ</p>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="resetFinalsKills()" style="padding:6px 12px;font-size:12px">🔄 รีเซ็ต Kill แมตช์นี้</button>
+        </div>
+        <div class="f-kill-grid" id="finals-kill-grid"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -532,6 +511,13 @@ function switchMatchFilter(filter) {
 function renderFinalsLB(data) {
   fState.lastData = data;
   const finalists = Object.values(data?.finalists || {});
+  
+  const lbBody = document.getElementById('finals-lb-body');
+  if (!lbBody) {
+    const mf = fState.currentMatchFilter || 'all';
+    fState.finalists = getFinalsLeaderboard(data, mf);
+    return;
+  }
   
   if (finalists.length === 0) {
     document.getElementById('finals-lb-body').innerHTML =
