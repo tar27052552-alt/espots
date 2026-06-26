@@ -1917,61 +1917,61 @@ body.presentation-mode.finals-page .f-score-breakdown {
 
 body.presentation-mode.finals-page .finals-lb .finals-table {
   border-collapse: separate !important;
-  border-spacing: 0 6px !important;
+  border-spacing: 0 4px !important;
   margin: 0 !important;
 }
 
 body.presentation-mode.finals-page .finals-lb .finals-table tbody tr:not([id^="details-"]) {
-  height: 52px !important; /* Spacious height for 1080p TV/Monitor screens */
+  height: 46px !important; /* Slightly adjusted to fit all 12 teams completely without bottom cut-off */
 }
 
 body.presentation-mode.finals-page .finals-lb .finals-table tbody tr:not([id^="details-"]) td {
-  padding: 8px 16px !important;
-  font-size: 16px !important;
+  padding: 6px 14px !important;
+  font-size: 14px !important;
 }
 
 body.presentation-mode.finals-page .finals-lb .f-rank {
-  width: 30px !important;
-  height: 30px !important;
-  font-size: 14px !important;
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 12px !important;
   border-width: 1.5px !important;
 }
 
 body.presentation-mode.finals-page .f-group-tag {
-  width: 28px !important;
-  height: 28px !important;
-  font-size: 11px !important;
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 10px !important;
   margin-right: 8px !important;
   border-radius: 6px !important;
 }
 
 body.presentation-mode.finals-page .finals-lb .f-team-name {
-  font-size: 16px !important;
+  font-size: 14px !important;
 }
 
 body.presentation-mode.finals-page .finals-lb .f-grand {
-  font-size: 20px !important;
+  font-size: 18px !important;
 }
 
 body.presentation-mode.finals-page .header-logo-school {
-  height: 70px !important;
+  height: 60px !important;
 }
 
 body.presentation-mode.finals-page .header-logo-game {
-  height: 44px !important;
+  height: 38px !important;
 }
 
 body.presentation-mode.finals-page .lb-title-block h1 {
-  font-size: 32px !important;
+  font-size: 28px !important;
 }
 
 body.presentation-mode.finals-page .finals-container {
-  padding: 24px !important;
-  gap: 20px !important;
+  padding: 16px 24px !important;
+  gap: 16px !important;
 }
 
 body.presentation-mode.finals-page .lb-top-header {
-  margin-bottom: 24px !important;
+  margin-bottom: 16px !important;
 }
 
 
