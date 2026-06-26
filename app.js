@@ -4,11 +4,11 @@
 
 const GROUPS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const TEAMS_PER_GROUP = 12;
-if (typeof TEAMS_COUNT === 'undefined') {
-  var TEAMS_COUNT = { A: 12, B: 12, C: 12, D: 12, E: 12, F: 11 };
+if (typeof window.TEAMS_COUNT === 'undefined') {
+  window.TEAMS_COUNT = { A: 12, B: 12, C: 12, D: 12, E: 12, F: 11 };
 }
-if (typeof getTeamsInGroup === 'undefined') {
-  var getTeamsInGroup = function(g) { return TEAMS_COUNT[g] || TEAMS_PER_GROUP; };
+if (typeof window.getTeamsInGroup === 'undefined') {
+  window.getTeamsInGroup = function(g) { return window.TEAMS_COUNT[g] || TEAMS_PER_GROUP; };
 }
 const QUALIFIER_MATCHES = 2;
 const FINALS_MATCHES = 3;
