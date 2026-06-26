@@ -259,6 +259,7 @@ function init() {
     fState.finalists = Object.values(d.finalists || {}).sort((a, b) => b.qualScore - a.qualScore);
     renderFinalsLB(d);
     renderFinalsKillGrid();
+    updateFinalsKillDisplay();
     renderFinalsPlacementSelects();
     checkChampion(d);
   });
