@@ -50,6 +50,29 @@
     .sub-score { font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; }
     .sub-m { padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 4px; }
 
+    /* Match Filter Bar */
+    .match-filter-bar {
+      display: flex; gap: 4px;
+      background: rgba(11, 13, 20, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      backdrop-filter: blur(10px);
+    }
+    .mf-btn {
+      padding: 6px 14px; border-radius: 6px;
+      font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 700;
+      border: 1px solid transparent; background: transparent; cursor: pointer;
+      color: var(--text-secondary); transition: all 0.2s ease;
+    }
+    .mf-btn:hover { color: var(--white); background: rgba(255,250,200,0.05); }
+    .mf-btn.active {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border-color: var(--yellow) !important;
+      box-shadow: 0 2px 8px rgba(255,230,0,0.2) !important;
+    }
+
     /* Match status indicators */
     .match-status-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
     .match-pill {
@@ -157,9 +180,15 @@
 <script>
 // ===== State =====
 let currentView = 'ALL';
+let currentMatchFilter = 'all'; // 'all', '1', '2'
 let liveData = {}; // Full Firebase snapshot
 let unsub = null;
 let activeGroups = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+function switchMatchFilter(filter) {
+  currentMatchFilter = filter;
+  renderView(currentView);
+}
 
 // ===== Group Filter Handlers =====
 function toggleGroupFilter(event) {
@@ -280,6 +309,7 @@ function updateLastUpdateTime() {
 // ===== View Switching =====
 function switchView(view) {
   currentView = view;
+  currentMatchFilter = 'all';
   document.querySelectorAll('.g-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.group === view);
   });
@@ -423,42 +453,70 @@ function renderGroupCard(g, cardStyle = '') {
 // ===== Single Group =====
 function renderSingleGroup(g) {
   const color = getGroupColor(g);
-  const teams = buildTeamScores(g);
+  const mf = currentMatchFilter;
+  const teams = buildTeamScores(g, mf);
+
+  const filterLabel = mf === 'all' ? 'คะแนนรวม (ม.1 + ม.2)' : `คะแนนเฉพาะแมตช์ ${mf}`;
 
   const rows = teams.map((t, rank) => {
-    const isAdvance = rank < 2;
+    const isAdvance = mf === 'all' ? rank < 2 : false;
     const rankClass = rank === 0 ? 'lb-rank-1' : rank === 1 ? 'lb-rank-2' : rank === 2 ? 'lb-rank-3' : '';
-    const m1 = getMatchScore(g, 1, t.index);
-    const m2 = getMatchScore(g, 2, t.index);
 
     // โหลดรายชื่อผู้เล่นเพื่อทำแถบย่อย
     const teamData = liveData?.config?.teams?.[g]?.[t.index] || {};
     const playerNames = teamData.players || getDefaultTeamPlayers(g, t.index);
     const quals = liveData?.qualifier?.[g] || {};
 
-    const playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;padding:8px">` + playerNames.map((p, pIdx) => {
-      const p1Kills = quals.match1?.kills?.[t.index]?.[pIdx] || 0;
-      const p2Kills = quals.match2?.kills?.[t.index]?.[pIdx] || 0;
-      const totalK = p1Kills + p2Kills;
-      return `
-        <div class="player-capsule-detail" style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;border:2px solid #ffe600;border-radius:100px;padding:8px 16px;color:#000000;box-shadow:0 3px 8px rgba(0,0,0,0.15)">
-          <div style="display:flex;flex-direction:column">
+    let playersHtml;
+    if (mf === 'all') {
+      const m1 = getMatchScore(g, 1, t.index);
+      const m2 = getMatchScore(g, 2, t.index);
+      playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;padding:8px">` + playerNames.map((p, pIdx) => {
+        const p1Kills = quals.match1?.kills?.[t.index]?.[pIdx] || 0;
+        const p2Kills = quals.match2?.kills?.[t.index]?.[pIdx] || 0;
+        const totalK = p1Kills + p2Kills;
+        return `
+          <div class="player-capsule-detail" style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;border:2px solid #ffe600;border-radius:100px;padding:8px 16px;color:#000000;box-shadow:0 3px 8px rgba(0,0,0,0.15)">
+            <div style="display:flex;flex-direction:column">
+              <span style="font-weight:700;font-size:13px">${escHtml(p)}</span>
+              <span style="font-size:10px;color:#666666">ม.1: ${p1Kills} | ม.2: ${p2Kills}</span>
+            </div>
+            <span style="background:#ffe600;color:#000000;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:800;font-family:'Orbitron',sans-serif">💀 ${totalK} K</span>
+          </div>`;
+      }).join('') + `</div>`;
+    } else {
+      const matchKey = `match${mf}`;
+      playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;padding:8px">` + playerNames.map((p, pIdx) => {
+        const pKills = quals[matchKey]?.kills?.[t.index]?.[pIdx] || 0;
+        return `
+          <div class="player-capsule-detail" style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;border:2px solid #ffe600;border-radius:100px;padding:8px 16px;color:#000000;box-shadow:0 3px 8px rgba(0,0,0,0.15)">
             <span style="font-weight:700;font-size:13px">${escHtml(p)}</span>
-            <span style="font-size:10px;color:#666666">ม.1: ${p1Kills} | ม.2: ${p2Kills}</span>
-          </div>
-          <span style="background:#ffe600;color:#000000;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:800;font-family:'Orbitron',sans-serif">💀 ${totalK} K</span>
+            <span style="background:#ffe600;color:#000000;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:800;font-family:'Orbitron',sans-serif">💀 ${pKills} K</span>
+          </div>`;
+      }).join('') + `</div>`;
+    }
+
+    // Sub-score line
+    let subScoreHtml = '';
+    if (mf === 'all') {
+      const m1 = getMatchScore(g, 1, t.index);
+      const m2 = getMatchScore(g, 2, t.index);
+      subScoreHtml = `
+        <div class="sub-score" style="font-size: 11px; color: #666666; display: flex; gap: 8px; margin-top: 2px;">
+          <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 1: ${m1.pl}pl + ${m1.kl}kl</span>
+          <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 2: ${m2.pl}pl + ${m2.kl}kl</span>
         </div>`;
-    }).join('') + `</div>`;
+    }
+
+    // Placement icon for specific match or all
+    const placementIcons = mf === 'all' ? getTeamPlacementIcons(g, t.index) : getTeamPlacementIconsSingle(g, t.index, parseInt(mf));
 
     return `
     <tr class="${isAdvance ? 'advance-row' : ''}" style="cursor:pointer" onclick="toggleRowDetails('${g}_${t.index}')">
       <td><span class="single-rank ${rankClass}">${rank+1}</span></td>
       <td>
-        <div class="lb-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} ${getTeamPlacementIcons(g, t.index)} <span class="expand-arrow" style="font-size:11px;color:#888888">▼</span></div>
-        <div class="sub-score" style="font-size: 11px; color: #666666; display: flex; gap: 8px; margin-top: 2px;">
-          <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 1: ${m1.pl}pl + ${m1.kl}kl</span>
-          <span style="background:rgba(0,0,0,0.05);padding:1px 6px;border-radius:4px">แมตช์ 2: ${m2.pl}pl + ${m2.kl}kl</span>
-        </div>
+        <div class="lb-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(t.name)} ${placementIcons} <span class="expand-arrow" style="font-size:11px;color:#888888">▼</span></div>
+        ${subScoreHtml}
       </td>
       <td><span class="lb-pl">📍 ${t.placement}</span></td>
       <td><span class="lb-kills">💀 ${t.kills}</span></td>
@@ -471,16 +529,27 @@ function renderSingleGroup(g) {
     </tr>`;
   }).join('');
 
+  // Match filter bar
+  const matchFilterHtml = `
+    <div class="match-filter-bar" style="margin-left:12px">
+      <button class="mf-btn ${mf === 'all' ? 'active' : ''}" onclick="switchMatchFilter('all')">📊 รวม</button>
+      <button class="mf-btn ${mf === '1' ? 'active' : ''}" onclick="switchMatchFilter('1')">🎮 แมตช์ 1</button>
+      <button class="mf-btn ${mf === '2' ? 'active' : ''}" onclick="switchMatchFilter('2')">🎮 แมตช์ 2</button>
+    </div>`;
+
   return `<div class="single-group-view">
-    <div class="single-group-header" style="border-left:4px solid ${color};padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border);">
+    <div class="single-group-header" style="border-left:4px solid ${color};padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:16px">
         <div class="single-group-badge" style="background:${color}20;color:${color};width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-family:'Orbitron',sans-serif">สาย ${g}</div>
         <div>
           <h2 style="font-size:22px;font-weight:900;font-family:'Outfit',sans-serif">กลุ่ม ${g}</h2>
-          <p class="text-muted" style="font-size:13px">รอบคัดเลือก · 2 แมตช์ · 12 ทีม · Top 2 ผ่านรอบชิง (คลิกเพื่อดูชื่อรายคน)</p>
+          <p class="text-muted" style="font-size:13px">รอบคัดเลือก · ${filterLabel} · 12 ทีม${mf === 'all' ? ' · Top 2 ผ่านรอบชิง' : ''} (คลิกเพื่อดูชื่อรายคน)</p>
         </div>
       </div>
-      <div style="margin-left:auto">${getGroupMatchStatus(g)}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+        ${matchFilterHtml}
+        ${getGroupMatchStatus(g)}
+      </div>
     </div>
     <table class="single-table">
       <thead><tr>
@@ -594,14 +663,17 @@ function renderMVPView() {
 }
 
 // ===== Score Helpers =====
-function buildTeamScores(g) {
+function buildTeamScores(g, matchFilter) {
+  matchFilter = matchFilter || 'all';
   const teamsData = liveData?.config?.teams?.[g] || {};
   const quals = liveData?.qualifier?.[g] || {};
+
+  const matchList = matchFilter === 'all' ? [1, 2] : [parseInt(matchFilter)];
 
   const teams = Array.from({ length: 12 }, (_, i) => {
     const name = teamsData[i]?.name || getDefaultTeamName(g, i);
     let pl = 0, kills = 0;
-    for (let m = 1; m <= 2; m++) {
+    for (const m of matchList) {
       const match = quals[`match${m}`];
       if (!match) continue;
       if (match.placements?.first == i) pl += 5;
@@ -638,6 +710,19 @@ function getTeamPlacementIcons(g, teamIndex) {
     }
   }
   return icons;
+}
+
+function getTeamPlacementIconsSingle(g, teamIndex, matchNum) {
+  const match = liveData?.qualifier?.[g]?.[`match${matchNum}`];
+  if (!match) return '';
+  let medal = '';
+  if (match.placements?.first == teamIndex) medal = '🥇';
+  else if (match.placements?.second == teamIndex) medal = '🥈';
+  else if (match.placements?.third == teamIndex) medal = '🥉';
+  if (medal) {
+    return `<span style="font-size:16px;cursor:default;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4))">${medal}</span>`;
+  }
+  return '';
 }
 
 function getMatchScore(g, matchNum, teamIndex) {
