@@ -105,9 +105,10 @@ function calcQualifierScore(groupId, teamIndex, data) {
   return { placement, kills, wins, total: placement + kills };
 }
 
-function calcFinalsScore(teamKey, qualScore, data) {
+function calcFinalsScore(teamKey, qualScore, data, matchFilter = 'all') {
   let placement = 0, kills = 0, wins = 0;
-  for (let m = 1; m <= FINALS_MATCHES; m++) {
+  const matchList = matchFilter === 'all' ? [1, 2, 3] : [parseInt(matchFilter)];
+  for (const m of matchList) {
     const match = data?.finals?.[`match${m}`];
     if (!match) continue;
     if (match.placements?.first === teamKey) {
@@ -139,12 +140,12 @@ function getGroupLeaderboard(groupId, data) {
     .sort((a, b) => b.total - a.total || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
 }
 
-function getFinalsLeaderboard(data) {
+function getFinalsLeaderboard(data, matchFilter = 'all') {
   const finalists = data?.finalists || {};
   return Object.entries(finalists)
     .map(([key, team]) => {
       const qualScore = team.qualScore || 0;
-      const finals = calcFinalsScore(key, qualScore, data);
+      const finals = calcFinalsScore(key, qualScore, data, matchFilter);
       return { ...team, key, qualScore, ...finals };
     })
     .sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.placement - a.placement || b.kills - a.kills);
@@ -177,9 +178,10 @@ function getGroupMVPLeaderboard(groupId, data) {
   return playersList.sort((a, b) => b.kills - a.kills);
 }
 
-function getFinalsMVPLeaderboard(data) {
+function getFinalsMVPLeaderboard(data, matchFilter = 'all') {
   const finalists = data?.finalists || {};
   const playersList = [];
+  const matchList = matchFilter === 'all' ? [1, 2, 3] : [parseInt(matchFilter)];
 
   Object.entries(finalists).forEach(([fKey, team]) => {
     const group = team.group;
@@ -189,7 +191,7 @@ function getFinalsMVPLeaderboard(data) {
     
     players.forEach((pName, pIdx) => {
       let totalKills = 0;
-      for (let m = 1; m <= FINALS_MATCHES; m++) {
+      for (const m of matchList) {
         const match = data?.finals?.[`match${m}`];
         totalKills += (match?.kills?.[fKey]?.[pIdx] || 0);
       }

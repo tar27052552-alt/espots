@@ -92,6 +92,30 @@
     .f-plc-2 label { color: var(--silver); }
     .f-plc-3 label { color: var(--bronze); }
 
+
+    /* Match Filter Bar */
+    .match-filter-bar {
+      display: flex; gap: 4px;
+      background: rgba(11, 13, 20, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      backdrop-filter: blur(10px);
+    }
+    .mf-btn {
+      padding: 6px 14px; border-radius: 6px;
+      font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 700;
+      border: 1px solid transparent; background: transparent; cursor: pointer;
+      color: var(--text-secondary); transition: all 0.2s ease;
+    }
+    .mf-btn:hover { color: var(--white); background: rgba(255,250,200,0.05); }
+    .mf-btn.active {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border-color: var(--yellow) !important;
+      box-shadow: 0 2px 8px rgba(255,230,0,0.2) !important;
+    }
+
     @media (max-width: 900px) {
       .finals-layout { grid-template-columns: 1fr; }
       .f-kill-grid { grid-template-columns: repeat(3, 1fr); }
@@ -138,6 +162,13 @@
         </div>
       </div>
       <div class="flex gap-8" style="align-items:center">
+        <!-- Match Filter Bar -->
+        <div class="match-filter-bar" id="global-match-filter" style="margin-right:8px">
+          <button class="mf-btn active" data-mf="all" onclick="switchMatchFilter('all')">📊 รวม</button>
+          <button class="mf-btn" data-mf="1" onclick="switchMatchFilter('1')">🎮 ม.1</button>
+          <button class="mf-btn" data-mf="2" onclick="switchMatchFilter('2')">🎮 ม.2</button>
+          <button class="mf-btn" data-mf="3" onclick="switchMatchFilter('3')">🎮 ม.3</button>
+        </div>
         <button class="btn btn-secondary btn-sm" onclick="togglePresentationMode()" style="font-family:'Orbitron','Kanit',sans-serif;font-weight:800;gap:6px">
           🖥️ เต็มจอ
         </button>
@@ -157,13 +188,13 @@
         <div class="finals-lb-header">
           <div>
             <h2 style="font-size:18px;font-weight:800">🏆 ตารางคะแนนรอบชิง</h2>
-            <p class="text-muted" style="font-size:13px">คะแนนรวม = รอบคัดเลือก + รอบชิงชนะเลิศ</p>
+            <p class="text-muted" style="font-size:13px">คะแนนสะสมรอบชิงชนะเลิศ</p>
           </div>
           <div class="live-indicator" id="lb-live">LIVE</div>
         </div>
         <table class="finals-table">
           <thead><tr>
-            <th>#</th><th>ทีม</th><th>คัดเลือก</th><th>รอบชิง</th><th>รวมทั้งหมด</th>
+            <th>#</th><th>ทีม (คลิกดูรายคน)</th><th>คะแนนอันดับ</th><th>คะแนน Kill</th><th>คะแนนรวม</th>
           </tr></thead>
           <tbody id="finals-lb-body">
             <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">กำลังโหลด...</td></tr>
@@ -242,6 +273,7 @@ let fState = {
   status: 'pending',
   placements: { first: null, second: null, third: null },
   currentView: 'TEAMS',
+  currentMatchFilter: 'all',
   lastData: null
 };
 let fUnsub = null;
@@ -486,6 +518,16 @@ function switchFinalsView(view) {
   }
 }
 
+function switchMatchFilter(filter) {
+  fState.currentMatchFilter = filter;
+  document.querySelectorAll('#global-match-filter .mf-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mf === filter);
+  });
+  if (fState.lastData) {
+    renderFinalsLB(fState.lastData);
+  }
+}
+
 // ===== Finals Leaderboard =====
 function renderFinalsLB(data) {
   fState.lastData = data;
@@ -514,7 +556,7 @@ function renderFinalsLB(data) {
       <th style="width:70px">อันดับ</th><th>ผู้เล่น</th><th>สังกัดทีม</th><th style="text-align:right">Kills รอบชิง</th>
     </tr>`;
     
-    const mvpList = getFinalsMVPLeaderboard(data);
+    const mvpList = getFinalsMVPLeaderboard(data, fState.currentMatchFilter);
     const top1 = mvpList[0];
     const top2 = mvpList[1];
     const top3 = mvpList[2];
@@ -582,7 +624,9 @@ function renderFinalsLB(data) {
       <tr><td colspan="4" style="background:transparent !important;padding:0 !important;border:none !important">${podiumHtml}</td></tr>
       ${rows || '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่มีข้อมูลสถิติ Kill เพิ่มเติม</td></tr>'}`;
   } else {
-    if (headerTitle) headerTitle.textContent = '🏆 ตารางคะแนนรอบชิง';
+    const mf = fState.currentMatchFilter || 'all';
+    const filterLabel = mf === 'all' ? 'คะแนนรวมรอบชิง' : `คะแนนรอบชิง — แมตช์ ${mf}`;
+    if (headerTitle) headerTitle.textContent = '🏆 ' + filterLabel;
     if (headerSub) headerSub.textContent = 'คะแนนรอบชิงชนะเลิศ (คลิกดูชื่อรายคน)';
     
     const tableHeader = document.querySelector('.finals-table thead');
@@ -590,46 +634,19 @@ function renderFinalsLB(data) {
       <th>#</th><th>ทีม (คลิกดูรายคน)</th><th>คะแนนอันดับ</th><th>คะแนน Kill</th><th>คะแนนรวม</th>
     </tr>`;
 
-    // Calculate total scores
-    const scored = finalists.map(f => {
-      let finalsKills = 0, finalsPlacement = 0, wins = 0;
-      for (let m = 1; m <= 3; m++) {
-        const match = data?.finals?.[`match${m}`];
-        if (!match) continue;
-        if (match.placements?.first === f.key) {
-          finalsPlacement += 5;
-          wins++;
-        }
-        else if (match.placements?.second === f.key) finalsPlacement += 3;
-        else if (match.placements?.third === f.key) finalsPlacement += 2;
-        
-        const teamKillsObj = match.kills?.[f.key];
-        if (teamKillsObj) {
-          if (typeof teamKillsObj === 'object') {
-            Object.values(teamKillsObj).forEach(k => { finalsKills += (k || 0); });
-          } else {
-            finalsKills += (teamKillsObj || 0);
-          }
-        }
-      }
-      return {
-        ...f,
-        finalsScore: finalsPlacement + finalsKills,
-        finalsKills, finalsPlacement, wins,
-        grandTotal: finalsPlacement + finalsKills
-      };
-    }).sort((a, b) => b.grandTotal - a.grandTotal || b.wins - a.wins || b.finalsPlacement - a.finalsPlacement || b.finalsKills - a.finalsKills);
+    const scored = getFinalsLeaderboard(data, mf);
 
     const rows = scored.map((f, rank) => {
       const color = getGroupColor(f.group);
       const rankClass = rank === 0 ? 'f-rank-1' : rank === 1 ? 'f-rank-2' : rank === 2 ? 'f-rank-3' : '';
-      const isChamp = rank === 0;
+      const isChamp = rank === 0 && mf === 'all';
       
       // โหลดรายชื่อผู้เล่นเพื่อทำแถบย่อย
       const players = getFinalistPlayers(f);
+      const matchList = mf === 'all' ? [1, 2, 3] : [parseInt(mf)];
       const playersHtml = `<div class="player-grid-details" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;padding:8px">` + players.map((p, pIdx) => {
         let pKills = 0;
-        for (let m = 1; m <= 3; m++) {
+        for (const m of matchList) {
           pKills += (data?.finals?.[`match${m}`]?.kills?.[f.key]?.[pIdx] || 0);
         }
         return `
@@ -645,19 +662,19 @@ function renderFinalsLB(data) {
           <div style="display:flex;align-items:center;gap:8px">
             <span class="f-group-tag" style="background:${color}20;color:${color}">${f.group}</span>
             <div>
-              <div class="f-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(f.name)} ${getFinalsPlacementIcons(f.key)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></div>
+              <div class="f-team-name" style="display:inline-flex;align-items:center;gap:6px">${escHtml(f.name)} ${getFinalsPlacementIcons(f.key, mf)} <span class="expand-arrow" style="font-size:10px;color:#888888">▼</span></div>
               <div class="f-score-breakdown">
                 <span>ชนะ: ${f.wins} ครั้ง</span>
                 <span>·</span>
-                <span>อันดับ: ${f.finalsPlacement} คะแนน</span>
+                <span>อันดับ: ${f.placement} คะแนน</span>
                 <span>·</span>
-                <span>Kill: ${f.finalsKills} คะแนน</span>
+                <span>Kill: ${f.kills} คะแนน</span>
               </div>
             </div>
           </div>
         </td>
-        <td><span style="color:#000000;font-weight:700">${f.finalsPlacement}</span></td>
-        <td><span style="color:#e65100;font-weight:700">${f.finalsKills}</span></td>
+        <td><span style="color:#000000;font-weight:700">${f.placement}</span></td>
+        <td><span style="color:#e65100;font-weight:700">${f.kills}</span></td>
         <td>
           <div class="f-grand">${f.grandTotal}</div>
         </td>
@@ -690,7 +707,7 @@ function checkChampion(data) {
   if (!allDone || finalists.length === 0) { document.getElementById('champion-banner').classList.remove('visible'); return; }
 
   const scored = finalists.map(f => {
-    let grand = f.qualScore || 0;
+    let grand = 0;
     let pl = 0, kl = 0, wins = 0;
     [m1, m2, m3].forEach(m => {
       if (!m) return;
@@ -720,10 +737,11 @@ function checkChampion(data) {
   }
 }
 
-function getFinalsPlacementIcons(teamKey) {
-  const data = liveData || {};
+function getFinalsPlacementIcons(teamKey, matchFilter = 'all') {
+  const data = fState.dbSnapshot || {};
   let icons = '';
-  for (let m = 1; m <= 3; m++) {
+  const matchList = matchFilter === 'all' ? [1, 2, 3] : [parseInt(matchFilter)];
+  for (const m of matchList) {
     const match = data?.finals?.[`match${m}`];
     if (!match) continue;
     let medal = '';
