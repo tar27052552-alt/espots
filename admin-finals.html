@@ -370,9 +370,6 @@ function getFinalistPlayers(f) {
 }
 
 async function recordFinalsKill(finalistIndex, playerIndex = 0) {
-  if (fState.status !== 'active') {
-    showToast('ต้องเริ่มแมตช์ก่อน', 'error'); return;
-  }
   const finalist = fState.finalists[finalistIndex];
   if (!finalist) return;
   const path = `finals/match${fState.match}/kills/${finalist.key}/${playerIndex}`;
