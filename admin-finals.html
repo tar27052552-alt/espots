@@ -36,7 +36,7 @@
     .champ-score { font-size: 18px; color: var(--text-secondary); margin-top: 8px; }
 
     /* Layout */
-    .finals-layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
+    .finals-layout { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
 
     /* Finals Leaderboard */
     .finals-lb { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
@@ -127,15 +127,15 @@
 
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">
-      <div class="navbar-logo">🎮</div>
+      <div class="navbar-logo">⚙️</div>
       <div>
         <div class="navbar-title">FF Esports Score</div>
-        <div class="navbar-subtitle">รอบชิงชนะเลิศ</div>
+        <div class="navbar-subtitle">Admin รอบชิงชนะเลิศ</div>
       </div>
     </a>
     <div class="navbar-nav">
-      <a href="leaderboard.html" class="nav-link" target="_blank">📊 Leaderboard คัดเลือก</a>
-      <a href="admin-finals.html" class="nav-link">⚙️ Admin รอบชิง</a>
+      <a href="finals.html" class="nav-link" target="_blank">🏆 บอร์ดรอบชิง (Spectator)</a>
+      <a href="admin.html" class="nav-link">🎮 Admin คัดเลือก</a>
     </div>
   </nav>
 
@@ -200,7 +200,61 @@
             <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">กำลังโหลด...</td></tr>
           </tbody>
         </table>
-      </div>    </div>
+      </div>
+
+      <!-- ===== ADMIN SIDEBAR ===== -->
+      <div class="admin-sidebar animate-in animate-in-delay-2">
+
+        <!-- Match Selector -->
+        <div class="card">
+          <div class="section-title">⚔️ รอบชิง — เลือกแมตช์</div>
+          <div class="flex gap-6" style="flex-direction:column" id="finals-match-selector">
+            <button class="finals-match-btn active" id="fmbtn-1" onclick="selectFinalsMatch(1)">⚔️ แมตช์ 1</button>
+            <button class="finals-match-btn" id="fmbtn-2" onclick="selectFinalsMatch(2)">⚔️ แมตช์ 2</button>
+            <button class="finals-match-btn" id="fmbtn-3" onclick="selectFinalsMatch(3)">⚔️ แมตช์ 3 (Final)</button>
+          </div>
+          <div class="flex gap-8 mt-12">
+            <button class="btn btn-success w-full" id="f-btn-start" onclick="startFinalsMatch()">▶ เริ่มแมตช์</button>
+            <button class="btn btn-danger w-full hidden" id="f-btn-end" onclick="endFinalsMatch()">⏹ จบแมตช์</button>
+          </div>
+        </div>
+
+        <!-- Hotkeys hint -->
+        <div class="card">
+          <div class="section-title">⌨️ Hotkey (1–9,0,-,=)</div>
+          <p class="text-muted" style="font-size:12px">กดตัวเลขบนคีย์บอร์ดเพื่อ +Kill ให้ทีม<br>ตามลำดับในรายการด้านซ้าย</p>
+          <div id="f-hk-status" class="mt-8 badge badge-purple">ปิดอยู่</div>
+        </div>
+
+        <!-- Kill Grid -->
+        <div class="card">
+          <div class="flex-between mb-10">
+            <div class="section-title" style="margin-bottom:0">💀 Kill Counter</div>
+            <button class="btn btn-sm btn-ghost" onclick="resetFinalsKills()">🔄</button>
+          </div>
+          <div class="f-kill-grid" id="finals-kill-grid"></div>
+        </div>
+
+        <!-- Placement -->
+        <div class="card">
+          <div class="section-title">🏅 อันดับแมตช์นี้</div>
+          <div class="f-plc f-plc-1">
+            <label>🥇 อันดับ 1 (+5คะแนน)</label>
+            <select class="form-input" id="f-plc-first" style="font-size:12px;padding:6px 8px"><option value="">— เลือก —</option></select>
+          </div>
+          <div class="f-plc f-plc-2">
+            <label>🥈 อันดับ 2 (+3คะแนน)</label>
+            <select class="form-input" id="f-plc-second" style="font-size:12px;padding:6px 8px"><option value="">— เลือก —</option></select>
+          </div>
+          <div class="f-plc f-plc-3">
+            <label>🥉 อันดับ 3 (+2คะแนน)</label>
+            <select class="form-input" id="f-plc-third" style="font-size:12px;padding:6px 8px"><option value="">— เลือก —</option></select>
+          </div>
+          <button class="btn btn-primary w-full mt-8" onclick="saveFinalsPlacement()">💾 บันทึกอันดับ</button>
+        </div>
+
+      </div>
+    </div>
   </div>
 </div>
 
@@ -304,21 +358,25 @@ function updateFinalsMatchUI() {
   const startBtn = document.getElementById('f-btn-start');
   const endBtn = document.getElementById('f-btn-end');
 
-  if (badge) {
-    if (s === 'active') {
-      badge.className = 'badge badge-green status-active';
-      badge.innerHTML = '<span class="status-dot"></span> กำลังแข่ง';
-    } else if (s === 'completed') {
-      badge.className = 'badge badge-cyan status-completed';
-      badge.innerHTML = '<span class="status-dot"></span> จบแล้ว';
-    } else {
-      badge.className = 'badge badge-purple status-pending';
-      badge.innerHTML = '<span class="status-dot"></span> รอเริ่ม';
-    }
+  if (s === 'active') {
+    badge.className = 'badge badge-green status-active';
+    badge.innerHTML = '<span class="status-dot"></span> กำลังแข่ง';
+    liveBadge.style.display = 'flex';
+    startBtn.classList.add('hidden');
+    endBtn.classList.remove('hidden');
+  } else if (s === 'completed') {
+    badge.className = 'badge badge-cyan status-completed';
+    badge.innerHTML = '<span class="status-dot"></span> จบแล้ว';
+    liveBadge.style.display = 'none';
+    startBtn.classList.add('hidden');
+    endBtn.classList.add('hidden');
+  } else {
+    badge.className = 'badge badge-purple status-pending';
+    badge.innerHTML = '<span class="status-dot"></span> รอเริ่ม';
+    liveBadge.style.display = 'none';
+    startBtn.classList.remove('hidden');
+    endBtn.classList.add('hidden');
   }
-  if (liveBadge) liveBadge.style.display = (s === 'active') ? 'flex' : 'none';
-  if (startBtn) startBtn.classList.toggle('hidden', s === 'active' || s === 'completed');
-  if (endBtn) endBtn.classList.toggle('hidden', s !== 'active');
 }
 
 function getFinalistPlayers(f) {
@@ -348,7 +406,6 @@ async function resetFinalsKills() {
 
 // ===== Placement =====
 function renderFinalsPlacementSelects() {
-  if (!document.getElementById('f-plc-first')) return;
   const opts = fState.finalists.map(f =>
     `<option value="${f.key}">${f.name} (สาย${f.group})</option>`
   ).join('');
@@ -376,7 +433,6 @@ async function saveFinalsPlacement() {
 // ===== Kill Grid =====
 function renderFinalsKillGrid() {
   const grid = document.getElementById('finals-kill-grid');
-  if (!grid) return;
   if (fState.finalists.length === 0) {
     grid.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:20px;color:var(--text-muted);font-size:12px">รอผลักดันทีมเข้ารอบชิง...</div>';
     return;
