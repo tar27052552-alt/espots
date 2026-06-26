@@ -267,7 +267,7 @@ function loadTeamsFromStorage() {
     state.teamsData = {};
     GROUPS.forEach(g => {
       state.teamsData[g] = [];
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < getTeamsInGroup(g); i++) {
         state.teamsData[g].push({
           name: getDefaultTeamName(g, i),
           players: getDefaultTeamPlayers(g, i)
@@ -297,7 +297,7 @@ function selectGroup(g) {
 
 function getTeamsForGroup(g) {
   const td = state.teamsData?.[g] || [];
-  return Array.from({ length: 12 }, (_, i) => {
+  return Array.from({ length: getTeamsInGroup(g) }, (_, i) => {
     const team = td[i] || {};
     return {
       index: i,
@@ -313,7 +313,7 @@ function selectMatch(m) {
     b.classList.toggle('active', (i + 1) === m);
   });
   document.getElementById('match-title').textContent = `สาย ${state.group} — แมตช์ ${m}`;
-  document.getElementById('match-subtitle').textContent = `รอบคัดเลือก · 12 ทีม`;
+  document.getElementById('match-subtitle').textContent = `รอบคัดเลือก · ${getTeamsInGroup(state.group)} ทีม`;
 
   // Listen to Firebase for this match
   if (unsub) unsub();

@@ -51,14 +51,18 @@ const CUSTOM_TEAM_NAMES = {
   F: [
     "ไม่รู้", "49", "ยิงกากแต่ปากดัง", "GG", "เล่น rov อยู่รอแปป", 
     "หมู", "ตี้น้องกี้888", "เเมะ", "ชายสี่", "มา4กลับ1", 
-    "ศิวกรสั่งลุยย", "ทีม F12"
+    "ศิวกรสั่งลุยย"
   ]
 };
+
+const TEAMS_COUNT = { A: 12, B: 12, C: 12, D: 12, E: 12, F: 11 };
+function getTeamsInGroup(g) { return TEAMS_COUNT[g] || 12; }
 
 const DEFAULT_TEAMS_DATA = {};
 ['A', 'B', 'C', 'D', 'E', 'F'].forEach(g => {
   DEFAULT_TEAMS_DATA[g] = {};
-  for (let i = 0; i < 12; i++) {
+  const limit = getTeamsInGroup(g);
+  for (let i = 0; i < limit; i++) {
     const name = CUSTOM_TEAM_NAMES[g]?.[i] || `ทีม ${g}${i + 1}`;
     DEFAULT_TEAMS_DATA[g][i] = {
       name: name,

@@ -205,7 +205,7 @@
 // ===== State =====
 let currentGroup = 'A';
 let teamData = {};
-GROUPS.forEach(g => { teamData[g] = Array(12).fill(''); });
+GROUPS.forEach(g => { teamData[g] = Array(getTeamsInGroup(g)).fill(''); });
 
 // ===== Tab Switching =====
 function switchTab(tab) {
@@ -274,7 +274,7 @@ async function loadTeamsFromStorage() {
     teamData = {};
     GROUPS.forEach(g => {
       teamData[g] = [];
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < getTeamsInGroup(g); i++) {
         teamData[g].push({
           name: getDefaultTeamName(g, i),
           players: getDefaultTeamPlayers(g, i)
@@ -289,11 +289,11 @@ function renderTeamInputs(g) {
   const container = document.getElementById('team-inputs-container');
   let html = `<div class="group-header" style="background:linear-gradient(90deg,${color}18,transparent);border-left:3px solid ${color}">
     <div class="group-badge" style="background:${color}22;color:${color}">สาย ${g}</div>
-    <span>รายชื่อทีมและผู้เล่นในสาย ${g} (12 ทีม)</span>
+    <span>รายชื่อทีมและผู้เล่นในสาย ${g} (${getTeamsInGroup(g)} ทีม)</span>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">`;
 
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < getTeamsInGroup(g); i++) {
     const team = teamData[g]?.[i] || {};
     const teamName = team.name || getDefaultTeamName(g, i);
     const players = team.players || getDefaultTeamPlayers(g, i);
