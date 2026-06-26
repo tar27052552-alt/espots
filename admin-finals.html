@@ -269,8 +269,12 @@ function init() {
   }
 
   if (!db) {
-    document.getElementById('finals-lb-body').innerHTML =
-      `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่ได้ตั้งค่า Firebase — <a href="admin-setup.html" style="color:var(--cyan)">ตั้งค่า</a></td></tr>`;
+    const lbBody = document.getElementById('finals-lb-body');
+    if (lbBody) {
+      lbBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">ยังไม่ได้ตั้งค่า Firebase — <a href="admin-setup.html" style="color:var(--cyan)">ตั้งค่า</a></td></tr>`;
+    } else {
+      showToast('ยังไม่ได้ตั้งค่า Firebase', 'error', 5000);
+    }
     return;
   }
 

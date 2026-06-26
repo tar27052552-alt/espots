@@ -1875,49 +1875,70 @@ body.presentation-mode .finals-lb {
 }
 
 /* Specific overrides for Finals page presentation mode to fit all 12 teams completely */
+body.presentation-mode.finals-page .tabs,
+body.presentation-mode.finals-page .finals-lb-header,
+body.presentation-mode.finals-page .f-score-breakdown {
+  display: none !important;
+}
+
 body.presentation-mode.finals-page .finals-lb .finals-table {
   border-collapse: separate !important;
-  border-spacing: 0 6px !important;
+  border-spacing: 0 4px !important;
+  margin: 0 !important;
 }
 
 body.presentation-mode.finals-page .finals-lb .finals-table tbody tr:not([id^="details-"]) {
-  height: 38px !important;
-}
-
-body.presentation-mode.finals-page .finals-lb .finals-table tbody tr:not([id^="details-"]) td {
-  padding: 4px 12px !important;
-  font-size: 13px !important;
-}
-
-body.presentation-mode.finals-page .finals-lb .f-rank {
-  width: 22px !important;
-  height: 22px !important;
-  font-size: 10px !important;
-}
-
-body.presentation-mode.finals-page .finals-lb .f-team-name {
-  font-size: 13px !important;
-}
-
-body.presentation-mode.finals-page .finals-lb .f-grand {
-  font-size: 15px !important;
-}
-
-body.presentation-mode.finals-page .finals-lb-header {
-  padding: 10px 16px !important;
-}
-
-body.presentation-mode.finals-page .header-logo-school {
-  height: 50px !important;
-}
-
-body.presentation-mode.finals-page .header-logo-game {
   height: 32px !important;
 }
 
-body.presentation-mode.finals-page .lb-title-block h1 {
-  font-size: 24px !important;
+body.presentation-mode.finals-page .finals-lb .finals-table tbody tr:not([id^="details-"]) td {
+  padding: 2px 10px !important;
+  font-size: 12px !important;
 }
+
+body.presentation-mode.finals-page .finals-lb .f-rank {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 9px !important;
+}
+
+body.presentation-mode.finals-page .f-group-tag {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 8px !important;
+  margin-right: 6px !important;
+  border-radius: 4px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb .f-team-name {
+  font-size: 12px !important;
+}
+
+body.presentation-mode.finals-page .finals-lb .f-grand {
+  font-size: 14px !important;
+}
+
+body.presentation-mode.finals-page .header-logo-school {
+  height: 44px !important;
+}
+
+body.presentation-mode.finals-page .header-logo-game {
+  height: 28px !important;
+}
+
+body.presentation-mode.finals-page .lb-title-block h1 {
+  font-size: 22px !important;
+}
+
+body.presentation-mode.finals-page .finals-container {
+  padding: 8px 16px !important;
+  gap: 8px !important;
+}
+
+body.presentation-mode.finals-page .lb-top-header {
+  margin-bottom: 8px !important;
+}
+
 
 
 
